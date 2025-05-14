@@ -1,0 +1,113 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 70 60% 22%; /* dashGreen */
+    --foreground: 48 100% 95%; /* dashYellow light */
+
+    --card: 70 60% 12%; /* dashGreen-card - much darker */
+    --card-foreground: 48 100% 95%;
+
+    --popover: 70 60% 12%; /* dashGreen-card - much darker */
+    --popover-foreground: 48 100% 95%;
+
+    --primary: 48 100% 50%; /* dashYellow */
+    --primary-foreground: 70 60% 10%;
+
+    --secondary: 70 60% 30%; /* dashGreen light */
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 70 30% 30%;
+    --muted-foreground: 48 30% 90%;
+
+    --accent: 0 100% 70%; /* dashRed */
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 70 30% 30%;
+    --input: 70 30% 30%;
+    --ring: 48 100% 50%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 70 60% 12%; /* darker dashGreen */
+    --foreground: 48 100% 95%; /* dashYellow light */
+
+    --card: 70 60% 7%; /* dashGreen-cardDark - very dark */
+    --card-foreground: 48 100% 95%;
+
+    --popover: 70 60% 7%; /* dashGreen-cardDark - very dark */
+    --popover-foreground: 48 100% 95%;
+
+    --primary: 48 100% 50%; /* dashYellow */
+    --primary-foreground: 70 60% 10%;
+
+    --secondary: 70 50% 25%; /* darker dashGreen light */
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 70 30% 20%;
+    --muted-foreground: 48 30% 90%;
+
+    --accent: 0 100% 60%; /* darker dashRed */
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 100% 40%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 70 30% 20%;
+    --input: 70 30% 20%;
+    --ring: 48 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-dashGreen text-dashYellow-light dark:bg-dashGreen-dark;
+  }
+}
+
+.card-with-border {
+  position: relative;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: rgba(42, 47, 14, 0.98); /* dashGreen-card with high opacity */
+  border: 2px solid #222222;
+  box-shadow: 0 8px 0 0 #222222, 0 0 15px rgba(0, 0, 0, 0.3);
+}
+
+.dark .card-with-border {
+  background: rgba(26, 29, 8, 0.98); /* dashGreen-cardDark with high opacity */
+}
+
+.card-with-border::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 2px solid #ffd700;
+  border-radius: 0.75rem;
+  pointer-events: none;
+}
+
+.dashcoin-title {
+  font-family: "Bangers", system-ui, sans-serif;
+  text-shadow: 3px 3px 0 #222222;
+  letter-spacing: 1px;
+}
+
+.dashcoin-text {
+  font-family: "Bangers", system-ui, sans-serif;
+  text-shadow: 2px 2px 0 #222222;
+  letter-spacing: 1px;
+}
