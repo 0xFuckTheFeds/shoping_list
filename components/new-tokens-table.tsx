@@ -9,10 +9,14 @@ interface NewTokensTableProps {
 }
 
 export function NewTokensTable({ data }: NewTokensTableProps) {
+  // Filter tokens to only show those with market cap above $10,000
+  const filteredTokens = data.filter((token) => (token.market_cap_usd || 0) > 10000)
+
   return (
     <DashcoinCard>
       <DashcoinCardHeader>
         <DashcoinCardTitle>Newest Tokens</DashcoinCardTitle>
+        <p className="text-sm mt-1 opacity-70">Showing tokens with market cap above $10,000</p>
       </DashcoinCardHeader>
       <DashcoinCardContent>
         <div className="overflow-x-auto">
@@ -27,8 +31,8 @@ export function NewTokensTable({ data }: NewTokensTableProps) {
               </tr>
             </thead>
             <tbody>
-              {data && data.length > 0 ? (
-                data.map((token, index) => {
+              {filteredTokens && filteredTokens.length > 0 ? (
+                filteredTokens.map((token, index) => {
                   const tokenAddress = token?.token_mint_address || ""
                   const tokenSymbol = token?.symbol || "???"
                   const createdTime = token?.created_time
@@ -68,7 +72,7 @@ export function NewTokensTable({ data }: NewTokensTableProps) {
               ) : (
                 <tr>
                   <td colSpan={5} className="py-4 text-center opacity-80">
-                    No new tokens available
+                    No new tokens with market cap above $10,000 available
                   </td>
                 </tr>
               )}
