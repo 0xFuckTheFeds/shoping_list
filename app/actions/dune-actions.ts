@@ -21,7 +21,7 @@ let allTokensCache: TokenData[] | null = null
 let volumeTokensCache: VolumeByTokenData[] | null = null
 let lastFetchTime = 0
 let lastVolumeFetchTime = 0
-const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+const CACHE_DURATION = 4 * 60 * 60 * 1000 // 4 hours
 
 /**
  * Fetch results directly from a Dune query using the results endpoint
@@ -481,5 +481,38 @@ export async function fetchTokenDetails(symbol: string): Promise<TokenData | nul
   } catch (error) {
     console.error("Error fetching token details:", error)
     return null
+  }
+}
+
+// Add a function to get the time remaining until next refresh
+export async function getTimeUntilNextDuneRefresh(): Promise<{ timeRemaining: number; lastRefreshTime: Date }> {
+  const now = Date.now()
+  const lastRefresh = new Date(lastFetchTime)
+  const nextRefresh = new Date(lastFetchTime + CACHE_DURATION)
+  const timeRemaining = Math.max(0, lastFetchTime + CACHE_DURATION - now)
+
+  return {
+    timeRemaining,
+    lastRefreshTime: lastRefresh,
+  }
+}
+
+// Add a function to force refresh the cache if needed (for admin purposes)
+export async function forceDuneDataRefresh(): Promise<boolean> {
+  try {
+    // Reset cache
+    allTokensCache = null
+    volumeTokensCache = null
+    lastFetchTime = 0
+    lastVolumeFetchTime = 0
+
+    // Fetch new data to populate cache
+    await fetchAllTokensFromDune()
+    await fetchVolumeByToken()
+
+    return true
+  } catch (error) {
+    console.error("Error forcing Dune data refresh:", error)
+    return false
   }
 }

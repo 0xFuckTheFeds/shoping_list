@@ -1,17 +1,23 @@
 import { ExternalLink, Twitter } from "lucide-react"
 import Image from "next/image"
 import { DashcoinLogo } from "@/components/dashcoin-logo"
-import { DashcoinCard, DashcoinCardHeader, DashcoinCardTitle, DashcoinCardContent } from "@/components/ui/dashcoin-card"
+import {
+  DashcoinCard,
+  DashcoinCardHeader,
+  DashcoinCardTitle,
+  DashcoinCardContent,
+  DashcoinCacheStatus,
+} from "@/components/ui/dashcoin-card"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { MarketCapChart } from "@/components/market-cap-chart"
 import { MarketCapPie } from "@/components/market-cap-pie"
-import { NavTabs } from "@/components/nav-tabs"
 import {
   fetchMarketCapOverTime,
   fetchMarketStats,
   fetchPaginatedTokens,
   fetchTokenMarketCaps,
   fetchTotalMarketCap,
+  getTimeUntilNextDuneRefresh,
 } from "./actions/dune-actions"
 import { fetchDexscreenerTokenData } from "./actions/dexscreener-actions"
 import { formatCurrency } from "@/lib/utils"
@@ -53,6 +59,18 @@ export default async function Home() {
     dexscreenerDataPromise,
   ])
 
+  // Get information about the Dune data cache
+  const { timeRemaining, lastRefreshTime } = await getTimeUntilNextDuneRefresh()
+  const nextRefreshTime = new Date(lastRefreshTime.getTime() + 4 * 60 * 60 * 1000)
+
+  // Format the refresh times for display
+  const formattedLastRefresh = lastRefreshTime.toLocaleString()
+  const formattedNextRefresh = nextRefreshTime.toLocaleString()
+
+  // Calculate hours and minutes until next refresh
+  const hoursUntilRefresh = Math.floor(timeRemaining / (60 * 60 * 1000))
+  const minutesUntilRefresh = Math.floor((timeRemaining % (60 * 60 * 1000)) / (60 * 1000))
+
   // Format numbers for display
   const formattedMarketCap = formatCurrency(totalMarketCap.total_marketcap_usd || marketStats.totalMarketCap)
   const formattedVolume = formatCurrency(marketStats.volume24h)
@@ -90,7 +108,7 @@ export default async function Home() {
   return (
     <div className="min-h-screen">
       <header className="container mx-auto py-6 px-4">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
             <DashcoinLogo size={56} />
             <a
@@ -106,7 +124,6 @@ export default async function Home() {
             <ThemeToggle />
           </div>
         </div>
-        <NavTabs />
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-8">
@@ -190,7 +207,11 @@ export default async function Home() {
           </div>
           {/* Last updated info */}
           <div className="mb-4 text-center">
-            <p className="text-xs opacity-60">Last updated: {lastUpdated}</p>
+            <p className="text-xs opacity-60">DEX data last updated: {lastUpdated}</p>
+            <p className="text-xs opacity-60">Dune data last updated: {formattedLastRefresh}</p>
+            <p className="text-xs opacity-60">
+              Next Dune refresh: {hoursUntilRefresh}h {minutesUntilRefresh}m
+            </p>
           </div>
           <p className="text-xl max-w-2xl mx-auto">Your Data Buddy for the Believe Coin Trenches</p>
         </div>
@@ -231,6 +252,12 @@ export default async function Home() {
               <div className="mt-2 pt-2 border-t border-dashGreen-light opacity-50">
                 <p className="text-sm">From Dune Analytics</p>
               </div>
+              <DashcoinCacheStatus
+                lastUpdated={formattedLastRefresh}
+                nextUpdate={formattedNextRefresh}
+                hoursRemaining={hoursUntilRefresh}
+                minutesRemaining={minutesUntilRefresh}
+              />
             </DashcoinCardContent>
           </DashcoinCard>
 
@@ -241,7 +268,7 @@ export default async function Home() {
             <DashcoinCardContent>
               <p className="dashcoin-text text-3xl text-dashYellow">{formattedVolume}</p>
               <div className="mt-2 pt-2 border-t border-dashGreen-light opacity-50">
-                <p className="text-sm">From Dune Analytics</p>
+                <p className="text-sm">Estimated from market cap</p>
               </div>
             </DashcoinCardContent>
           </DashcoinCard>

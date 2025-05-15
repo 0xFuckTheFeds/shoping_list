@@ -9,12 +9,6 @@ import { fetchPaginatedTokens } from "@/app/actions/dune-actions"
 import type { TokenData, PaginatedTokenResponse } from "@/types/dune"
 import { CopyAddress } from "@/components/copy-address"
 
-// Map of token symbols to their correct Axiom Trade pair addresses
-const AXIOM_TRADE_PAIRS: Record<string, string> = {
-  GOON: "C1gyx8um8GNk3HNZdvc9Sao6QwTdX23zh44LfTtPJaeJ", // SOL/GOONC pair
-  // Add more pairs as needed
-}
-
 export default function TokenTable({ data }: { data: PaginatedTokenResponse | TokenData[] }) {
   // Convert legacy data format to new format if needed
   const initialData = Array.isArray(data)
@@ -102,20 +96,6 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
   // Safe getter for token properties
   const getTokenProperty = (token: any, property: string, defaultValue: any = "N/A") => {
     return token && token[property] !== undefined && token[property] !== null ? token[property] : defaultValue
-  }
-
-  // Get the correct Axiom Trade link for a token
-  const getAxiomTradeLink = (token: TokenData) => {
-    const tokenSymbol = getTokenProperty(token, "symbol", "")
-    const tokenAddress = getTokenProperty(token, "token", "")
-
-    // If we have a specific pair address for this token, use it
-    if (tokenSymbol && AXIOM_TRADE_PAIRS[tokenSymbol]) {
-      return `https://axiom.trade/meme/${AXIOM_TRADE_PAIRS[tokenSymbol]}`
-    }
-
-    // Otherwise use the token address
-    return tokenAddress ? `https://axiom.trade/meme/${tokenAddress}/@dashc` : "#"
   }
 
   return (
@@ -212,7 +192,6 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
                 filteredTokens.map((token, index) => {
                   const tokenAddress = getTokenProperty(token, "token", "")
                   const tokenSymbol = getTokenProperty(token, "symbol", "???")
-                  const axiomTradeLink = getAxiomTradeLink(token)
 
                   return (
                     <tr
@@ -236,7 +215,7 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
                       <td className="py-3 px-4">
                         <div className="flex gap-2">
                           <a
-                            href={axiomTradeLink}
+                            href={tokenAddress ? `https://axiom.trade/meme/${tokenAddress}/@dashc` : "#"}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="px-3 py-1.5 bg-dashYellow text-dashBlack font-medium rounded-md hover:bg-dashYellow-dark transition-colors text-sm flex items-center justify-center min-w-[80px] border border-dashBlack"

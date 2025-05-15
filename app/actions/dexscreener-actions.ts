@@ -144,6 +144,30 @@ async function fetchWithRetry(url: string, maxRetries = 3, initialDelay = 1000):
   throw new Error(`Failed to fetch after ${maxRetries} retries`)
 }
 
+// Add a function to get the time remaining until next Dexscreener refresh
+export async function getTimeUntilNextDexscreenerRefresh(cacheKey: string): Promise<{
+  timeRemaining: number
+  lastRefreshTime: Date | null
+}> {
+  const now = Date.now()
+  const cachedData = dexscreenerCache.get(cacheKey)
+
+  if (!cachedData) {
+    return {
+      timeRemaining: 0,
+      lastRefreshTime: null,
+    }
+  }
+
+  const lastRefresh = new Date(cachedData.timestamp)
+  const timeRemaining = Math.max(0, cachedData.timestamp + CACHE_TTL - now)
+
+  return {
+    timeRemaining,
+    lastRefreshTime: lastRefresh,
+  }
+}
+
 /**
  * Fetch token data from Dexscreener API with caching
  */
