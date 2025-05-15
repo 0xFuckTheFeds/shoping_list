@@ -12,6 +12,15 @@ import type {
   PaginatedTokenResponse,
   VolumeByTokenData,
 } from "@/types/dune"
+import {
+  CACHE_KEYS,
+  getFromCache,
+  setInCache,
+  getTimeUntilNextRefresh,
+  acquireRefreshLock,
+  releaseRefreshLock,
+  CACHE_DURATION,
+} from "@/lib/redis"
 
 // Check if we're in a preview environment
 const IS_PREVIEW = process.env.VERCEL_ENV === "preview" || process.env.ENABLE_DUNE_API === "false"
@@ -450,11 +459,11 @@ const MOCK_DATA = {
 const DUNE_API_KEY = process.env.DUNE_API_KEY
 
 // In-memory cache for token data to avoid refetching from Dune
-let allTokensCache: TokenData[] | null = null
-let volumeTokensCache: VolumeByTokenData[] | null = null
-let lastFetchTime = 0
-let lastVolumeFetchTime = 0
-const CACHE_DURATION = 4 * 60 * 60 * 1000 // 4 hours
+// let allTokensCache: TokenData[] | null = null
+// let volumeTokensCache: VolumeByTokenData[] | null = null
+// let lastFetchTime = 0
+// let lastVolumeFetchTime = 0
+// const CACHE_DURATION = 4 * 60 * 60 * 1000 // 4 hours
 
 /**
  * Fetch results directly from a Dune query using the results endpoint
@@ -568,10 +577,10 @@ async function executeDuneQuery(queryId: number, parameters: DuneQueryParameter[
  */
 async function fetchVolumeByToken(): Promise<VolumeByTokenData[]> {
   try {
-    // Check if we need to refresh the cache
-    const now = Date.now()
-    if (volumeTokensCache && now - lastVolumeFetchTime <= CACHE_DURATION) {
-      return volumeTokensCache
+    // Check if data exists in cache
+    const cachedData = await getFromCache<VolumeByTokenData[]>(CACHE_KEYS.VOLUME_TOKENS)
+    if (cachedData) {
+      return cachedData
     }
 
     // Use mock data in preview environments
@@ -585,10 +594,8 @@ async function fetchVolumeByToken(): Promise<VolumeByTokenData[]> {
         created_time: token.created_time,
       }))
 
-      // Update cache
-      volumeTokensCache = tokens
-      lastVolumeFetchTime = now
-
+      // Store in cache
+      await setInCache(CACHE_KEYS.VOLUME_TOKENS, tokens)
       return tokens
     }
 
@@ -607,10 +614,8 @@ async function fetchVolumeByToken(): Promise<VolumeByTokenData[]> {
         }
       })
 
-      // Update cache
-      volumeTokensCache = tokens
-      lastVolumeFetchTime = now
-
+      // Store in cache
+      await setInCache(CACHE_KEYS.VOLUME_TOKENS, tokens)
       return tokens
     }
 
@@ -627,10 +632,18 @@ async function fetchVolumeByToken(): Promise<VolumeByTokenData[]> {
  */
 async function fetchAllTokensFromDune(): Promise<TokenData[]> {
   try {
+    // Check if data exists in cache
+    const cachedData = await getFromCache<TokenData[]>(CACHE_KEYS.ALL_TOKENS)
+    if (cachedData) {
+      return cachedData
+    }
+
     // Use mock data in preview environments
     if (IS_PREVIEW) {
       console.log("Using mock token data in preview environment")
-      return [...MOCK_DATA.tokens]
+      const mockData = [...MOCK_DATA.tokens]
+      await setInCache(CACHE_KEYS.ALL_TOKENS, mockData)
+      return mockData
     }
 
     // Use query 5129959 which has the market cap data directly
@@ -660,7 +673,11 @@ async function fetchAllTokensFromDune(): Promise<TokenData[]> {
       })
 
       // Sort tokens by market cap (descending)
-      return tokens.sort((a, b) => b.marketCap - a.marketCap)
+      const sortedTokens = tokens.sort((a, b) => b.marketCap - a.marketCap)
+
+      // Store in cache
+      await setInCache(CACHE_KEYS.ALL_TOKENS, sortedTokens)
+      return sortedTokens
     }
 
     throw new Error("No data returned from Dune query")
@@ -680,20 +697,15 @@ export async function fetchPaginatedTokens(
   sortDirection = "desc",
 ): Promise<PaginatedTokenResponse> {
   try {
-    // Check if we need to refresh the cache
-    const now = Date.now()
-    if (!allTokensCache || now - lastFetchTime > CACHE_DURATION) {
-      console.log("Fetching all tokens from Dune (cache expired or not initialized)")
-      allTokensCache = await fetchAllTokensFromDune()
-      lastFetchTime = now
-    }
+    // Get all tokens from cache or fetch if needed
+    const allTokens = await fetchAllTokensFromDune()
 
     // Calculate total tokens and pages
-    const totalTokens = allTokensCache.length
+    const totalTokens = allTokens.length
     const totalPages = Math.ceil(totalTokens / pageSize)
 
     // Sort the tokens based on the requested sort field and direction
-    const sortedTokens = [...allTokensCache].sort((a, b) => {
+    const sortedTokens = [...allTokens].sort((a, b) => {
       const aValue = a[sortField as keyof typeof a] || 0
       const bValue = b[sortField as keyof typeof b] || 0
 
@@ -749,16 +761,24 @@ export async function fetchTokenData(): Promise<TokenData[]> {
  */
 export async function fetchMarketCapOverTime(): Promise<MarketCapTimeData[]> {
   try {
+    // Check if data exists in cache
+    const cachedData = await getFromCache<MarketCapTimeData[]>(CACHE_KEYS.MARKET_CAP_TIME)
+    if (cachedData) {
+      return cachedData
+    }
+
     // Use mock data in preview environments
     if (IS_PREVIEW) {
       console.log("Using mock market cap time data in preview environment")
-      return [...MOCK_DATA.marketCapTimeData]
+      const mockData = [...MOCK_DATA.marketCapTimeData]
+      await setInCache(CACHE_KEYS.MARKET_CAP_TIME, mockData)
+      return mockData
     }
 
     const result = await fetchDuneQueryResults(5119241)
 
     if (result && result.rows && result.rows.length > 0) {
-      return result.rows.map((row: any) => ({
+      const data = result.rows.map((row: any) => ({
         date: row.date,
         marketcap: Number.parseFloat(row.marketcap),
         num_holders: Number.parseInt(row.num_holders),
@@ -766,6 +786,10 @@ export async function fetchMarketCapOverTime(): Promise<MarketCapTimeData[]> {
         nh_diff_7d: Number.parseFloat(row.nh_diff_7d),
         nh_diff_30d: Number.parseFloat(row.nh_diff_30d),
       }))
+
+      // Store in cache
+      await setInCache(CACHE_KEYS.MARKET_CAP_TIME, data)
+      return data
     }
 
     throw new Error("No market cap time data returned from Dune query")
@@ -776,26 +800,28 @@ export async function fetchMarketCapOverTime(): Promise<MarketCapTimeData[]> {
 }
 
 /**
- *    console.error("Error fetching market cap time data:", error)
-    return []
-  }
-}
-
-/**
  * Fetch token market cap data for pie chart (5129959)
  */
 export async function fetchTokenMarketCaps(): Promise<TokenMarketCapData[]> {
   try {
+    // Check if data exists in cache
+    const cachedData = await getFromCache<TokenMarketCapData[]>(CACHE_KEYS.TOKEN_MARKET_CAPS)
+    if (cachedData) {
+      return cachedData
+    }
+
     // Use mock data in preview environments
     if (IS_PREVIEW) {
       console.log("Using mock token market cap data in preview environment")
-      return [...MOCK_DATA.tokenMarketCaps]
+      const mockData = [...MOCK_DATA.tokenMarketCaps]
+      await setInCache(CACHE_KEYS.TOKEN_MARKET_CAPS, mockData)
+      return mockData
     }
 
     const result = await fetchDuneQueryResults(5129959)
 
     if (result && result.rows && result.rows.length > 0) {
-      return result.rows.map((row: any) => ({
+      const data = result.rows.map((row: any) => ({
         date: row.date,
         token_mint_address: row.token_mint_address,
         name: row.name,
@@ -804,6 +830,10 @@ export async function fetchTokenMarketCaps(): Promise<TokenMarketCapData[]> {
         num_holders: Number.parseInt(row.num_holders),
         rn: Number.parseInt(row.rn),
       }))
+
+      // Store in cache
+      await setInCache(CACHE_KEYS.TOKEN_MARKET_CAPS, data)
+      return data
     }
 
     throw new Error("No token market cap data returned from Dune query")
@@ -818,20 +848,32 @@ export async function fetchTokenMarketCaps(): Promise<TokenMarketCapData[]> {
  */
 export async function fetchTotalMarketCap(): Promise<TotalMarketCapData> {
   try {
+    // Check if data exists in cache
+    const cachedData = await getFromCache<TotalMarketCapData>(CACHE_KEYS.TOTAL_MARKET_CAP)
+    if (cachedData) {
+      return cachedData
+    }
+
     // Use mock data in preview environments
     if (IS_PREVIEW) {
       console.log("Using mock total market cap data in preview environment")
-      return { ...MOCK_DATA.totalMarketCap }
+      const mockData = { ...MOCK_DATA.totalMarketCap }
+      await setInCache(CACHE_KEYS.TOTAL_MARKET_CAP, mockData)
+      return mockData
     }
 
     const result = await fetchDuneQueryResults(5130872)
 
     if (result && result.rows && result.rows.length > 0) {
       const row = result.rows[0]
-      return {
+      const data = {
         latest_data_at: row.latest_data_at,
         total_marketcap_usd: Number.parseFloat(row.total_marketcap_usd),
       }
+
+      // Store in cache
+      await setInCache(CACHE_KEYS.TOTAL_MARKET_CAP, data)
+      return data
     }
 
     throw new Error("No total market cap data returned from Dune query")
@@ -849,16 +891,24 @@ export async function fetchTotalMarketCap(): Promise<TotalMarketCapData> {
  */
 export async function fetchNewTokens(limit = 10): Promise<NewTokenData[]> {
   try {
+    // Check if data exists in cache
+    const cachedData = await getFromCache<NewTokenData[]>(CACHE_KEYS.NEW_TOKENS)
+    if (cachedData) {
+      return cachedData.slice(0, limit)
+    }
+
     // Use mock data in preview environments
     if (IS_PREVIEW) {
       console.log("Using mock new token data in preview environment")
-      return [...MOCK_DATA.newTokens].slice(0, limit)
+      const mockData = [...MOCK_DATA.newTokens]
+      await setInCache(CACHE_KEYS.NEW_TOKENS, mockData)
+      return mockData.slice(0, limit)
     }
 
     const result = await fetchDuneQueryResults(5129347)
 
     if (result && result.rows && result.rows.length > 0) {
-      return result.rows.slice(0, limit).map((row: any) => ({
+      const data = result.rows.map((row: any) => ({
         token_mint_address: row.token_mint_address,
         created_time: row.created_time,
         name: row.name || "Unknown",
@@ -866,6 +916,10 @@ export async function fetchNewTokens(limit = 10): Promise<NewTokenData[]> {
         market_cap_usd: row.market_cap_usd ? Number.parseFloat(row.market_cap_usd) : 0,
         num_holders: Number.parseInt(row.num_holders),
       }))
+
+      // Store in cache
+      await setInCache(CACHE_KEYS.NEW_TOKENS, data)
+      return data.slice(0, limit)
     }
 
     throw new Error("No new token data returned from Dune query")
@@ -880,10 +934,18 @@ export async function fetchNewTokens(limit = 10): Promise<NewTokenData[]> {
  */
 export async function fetchMarketStats(): Promise<MarketStats> {
   try {
+    // Check if data exists in cache
+    const cachedData = await getFromCache<MarketStats>(CACHE_KEYS.MARKET_STATS)
+    if (cachedData) {
+      return cachedData
+    }
+
     // Use mock data in preview environments
     if (IS_PREVIEW) {
       console.log("Using mock market stats in preview environment")
-      return { ...MOCK_DATA.marketStats }
+      const mockData = { ...MOCK_DATA.marketStats }
+      await setInCache(CACHE_KEYS.MARKET_STATS, mockData)
+      return mockData
     }
 
     // Fetch volume by token data for more accurate stats
@@ -906,7 +968,7 @@ export async function fetchMarketStats(): Promise<MarketStats> {
       // Count total number of tokens
       const coinLaunches = volumeTokens.length
 
-      return {
+      const data = {
         totalMarketCap,
         volume24h,
         transactions24h,
@@ -914,6 +976,10 @@ export async function fetchMarketStats(): Promise<MarketStats> {
         lifetimeVolume: volume24h * 30, // Estimate lifetime as 30 days of volume
         coinLaunches,
       }
+
+      // Store in cache
+      await setInCache(CACHE_KEYS.MARKET_STATS, data)
+      return data
     }
 
     throw new Error("No token data available to calculate market stats")
@@ -943,30 +1009,21 @@ export async function fetchTokenDetails(symbol: string): Promise<TokenData | nul
       return token || null
     }
 
-    // Check if we need to refresh the cache
-    const now = Date.now()
-    if (!allTokensCache || now - lastFetchTime > CACHE_DURATION) {
-      console.log("Fetching all tokens from Dune (cache expired or not initialized)")
-      allTokensCache = await fetchAllTokensFromDune()
-      lastFetchTime = now
-    }
+    // Get all tokens from cache or fetch if needed
+    const allTokens = await fetchAllTokensFromDune()
 
     // Find the token in the cache
-    const token = allTokensCache.find((token) => token.symbol.toLowerCase() === symbol.toLowerCase())
+    const token = allTokens.find((token) => token.symbol.toLowerCase() === symbol.toLowerCase())
 
     if (!token) {
       return null
     }
 
     // Try to enrich with volume data if available
-    if (!volumeTokensCache || now - lastVolumeFetchTime > CACHE_DURATION) {
-      console.log("Fetching volume data for token details")
-      volumeTokensCache = await fetchVolumeByToken()
-      lastVolumeFetchTime = now
-    }
+    const volumeTokens = await fetchVolumeByToken()
 
     // Find matching volume data
-    const volumeData = volumeTokensCache.find((vt) => vt.token === token.token || vt.symbol === token.symbol)
+    const volumeData = volumeTokens.find((vt) => vt.token === token.token || vt.symbol === token.symbol)
 
     if (volumeData) {
       return {
@@ -984,7 +1041,7 @@ export async function fetchTokenDetails(symbol: string): Promise<TokenData | nul
   }
 }
 
-// Modify getTimeUntilNextDuneRefresh to use mock data in preview
+// Get time until next refresh using Redis cache
 export async function getTimeUntilNextDuneRefresh(): Promise<{ timeRemaining: number; lastRefreshTime: Date }> {
   // In preview, simulate a refresh that happened 1 hour ago
   if (IS_PREVIEW) {
@@ -998,41 +1055,116 @@ export async function getTimeUntilNextDuneRefresh(): Promise<{ timeRemaining: nu
     }
   }
 
-  const now = Date.now()
-  const lastRefresh = new Date(lastFetchTime)
-  const nextRefresh = new Date(lastFetchTime + CACHE_DURATION)
-  const timeRemaining = Math.max(0, lastFetchTime + CACHE_DURATION - now)
+  const { timeRemaining, lastRefreshTime, nextRefreshTime } = await getTimeUntilNextRefresh()
 
   return {
     timeRemaining,
-    lastRefreshTime: lastRefresh,
+    lastRefreshTime: lastRefreshTime || new Date(Date.now() - CACHE_DURATION / 2), // Default to 2 hours ago if not set
   }
 }
 
-// Modify forceDuneDataRefresh to use mock data in preview
+// Force refresh all Dune data
 export async function forceDuneDataRefresh(): Promise<boolean> {
   try {
     if (IS_PREVIEW) {
       console.log("Simulating force refresh in preview environment")
-      // Just reset the timestamps but keep using mock data
-      lastFetchTime = Date.now()
-      lastVolumeFetchTime = Date.now()
       return true
     }
 
-    // Reset cache
-    allTokensCache = null
-    volumeTokensCache = null
-    lastFetchTime = 0
-    lastVolumeFetchTime = 0
+    // Try to acquire the refresh lock
+    const lockAcquired = await acquireRefreshLock()
+    if (!lockAcquired) {
+      console.log("Refresh already in progress, skipping")
+      return false
+    }
 
-    // Fetch new data to populate cache
-    await fetchAllTokensFromDune()
-    await fetchVolumeByToken()
+    try {
+      console.log("Starting forced data refresh")
 
-    return true
+      // Fetch all data types
+      await Promise.all([
+        fetchAllTokensFromDune(),
+        fetchVolumeByToken(),
+        fetchMarketCapOverTime(),
+        fetchTokenMarketCaps(),
+        fetchTotalMarketCap(),
+        fetchNewTokens(),
+        fetchMarketStats(),
+      ])
+
+      // Update refresh timestamps
+      const now = Date.now()
+      const nextRefresh = now + CACHE_DURATION
+
+      await setInCache(CACHE_KEYS.LAST_REFRESH_TIME, now)
+      await setInCache(CACHE_KEYS.NEXT_REFRESH_TIME, nextRefresh)
+
+      console.log("Forced data refresh completed successfully")
+      return true
+    } finally {
+      // Always release the lock when done
+      await releaseRefreshLock()
+    }
   } catch (error) {
     console.error("Error forcing Dune data refresh:", error)
+    return false
+  }
+}
+
+// This function will be called by the cron job to refresh data
+export async function refreshDuneData(): Promise<boolean> {
+  try {
+    // Skip in preview environments
+    if (IS_PREVIEW) {
+      console.log("Skipping scheduled refresh in preview environment")
+      return true
+    }
+
+    // Check if it's time to refresh
+    const { timeRemaining } = await getTimeUntilNextRefresh()
+
+    // If more than 30 minutes remaining, skip refresh
+    if (timeRemaining > 30 * 60 * 1000) {
+      console.log(`Skipping refresh, next refresh in ${Math.floor(timeRemaining / (60 * 1000))} minutes`)
+      return false
+    }
+
+    // Try to acquire the refresh lock
+    const lockAcquired = await acquireRefreshLock()
+    if (!lockAcquired) {
+      console.log("Refresh already in progress, skipping")
+      return false
+    }
+
+    try {
+      console.log("Starting scheduled data refresh")
+
+      // Fetch all data types
+      await Promise.all([
+        fetchAllTokensFromDune(),
+        fetchVolumeByToken(),
+        fetchMarketCapOverTime(),
+        fetchTokenMarketCaps(),
+        fetchTotalMarketCap(),
+        fetchNewTokens(),
+        fetchMarketStats(),
+      ])
+
+      // Update refresh timestamps
+      const now = Date.now()
+      const nextRefresh = now + CACHE_DURATION
+
+      await setInCache(CACHE_KEYS.LAST_REFRESH_TIME, now)
+      await setInCache(CACHE_KEYS.NEXT_REFRESH_TIME, nextRefresh)
+
+      console.log("Scheduled data refresh completed successfully")
+      return true
+    } finally {
+      // Always release the lock when done
+      await releaseRefreshLock()
+    }
+  } catch (error) {
+    console.error("Error during scheduled Dune data refresh:", error)
     return false
   }
 }

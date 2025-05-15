@@ -26,6 +26,7 @@ import { Suspense } from "react"
 import TokenTable from "@/components/token-table"
 import { CopyAddress } from "@/components/copy-address"
 import { DuneQueryLink } from "@/components/dune-query-link"
+import { AdminRefreshButton } from "@/components/admin-refresh-button"
 
 // Define wrapper components to handle promises
 const MarketCapChartWrapper = async ({ marketCapTimeDataPromise }: { marketCapTimeDataPromise: Promise<any> }) => {
@@ -143,7 +144,8 @@ export default async function Home() {
               SUPPORT THE PAGE <ExternalLink className="h-4 w-4 ml-1" />
             </a>
           </div>
-          <div>
+          <div className="flex items-center gap-2">
+            <AdminRefreshButton />
             <ThemeToggle />
           </div>
         </div>
