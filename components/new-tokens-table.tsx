@@ -3,6 +3,7 @@ import { DashcoinCard, DashcoinCardHeader, DashcoinCardTitle, DashcoinCardConten
 import type { NewTokenData } from "@/types/dune"
 import { formatCurrency } from "@/lib/utils"
 import { CopyAddress } from "@/components/copy-address"
+import { DuneQueryLink } from "@/components/dune-query-link"
 
 interface NewTokensTableProps {
   data: NewTokenData[]
@@ -78,6 +79,9 @@ export function NewTokensTable({ data }: NewTokensTableProps) {
               )}
             </tbody>
           </table>
+        </div>
+        <div className="flex justify-end mt-4">
+          <DuneQueryLink queryId={5129347} />
         </div>
       </DashcoinCardContent>
     </DashcoinCard>

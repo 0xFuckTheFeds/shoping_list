@@ -25,6 +25,23 @@ import EnvSetup from "./env-setup"
 import { Suspense } from "react"
 import TokenTable from "@/components/token-table"
 import { CopyAddress } from "@/components/copy-address"
+import { DuneQueryLink } from "@/components/dune-query-link"
+
+// Define wrapper components to handle promises
+const MarketCapChartWrapper = async ({ marketCapTimeDataPromise }: { marketCapTimeDataPromise: Promise<any> }) => {
+  const marketCapTimeData = await marketCapTimeDataPromise
+  return <MarketCapChart data={marketCapTimeData} />
+}
+
+const MarketCapPieWrapper = async ({ tokenMarketCapsPromise }: { tokenMarketCapsPromise: Promise<any> }) => {
+  const tokenMarketCaps = await tokenMarketCapsPromise
+  return <MarketCapPie data={tokenMarketCaps} />
+}
+
+const TokenTableWrapper = async ({ tokenDataPromise }: { tokenDataPromise: Promise<any> }) => {
+  const tokenData = await tokenDataPromise
+  return <TokenTable data={tokenData} />
+}
 
 export default async function Home() {
   // Check if DUNE_API_KEY is set
@@ -64,7 +81,10 @@ export default async function Home() {
   const nextRefreshTime = new Date(lastRefreshTime.getTime() + 4 * 60 * 60 * 1000)
 
   // Format the refresh times for display
-  const formattedLastRefresh = lastRefreshTime.toLocaleString()
+  const formattedLastRefresh = lastRefreshTime.toLocaleString(undefined, {
+    dateStyle: "short",
+    timeStyle: "medium",
+  })
   const formattedNextRefresh = nextRefreshTime.toLocaleString()
 
   // Calculate hours and minutes until next refresh
@@ -101,7 +121,10 @@ export default async function Home() {
 
     // If we have a timestamp for the data, use it
     if (pair.updatedAt) {
-      lastUpdated = new Date(pair.updatedAt).toLocaleString()
+      lastUpdated = new Date(pair.updatedAt).toLocaleString(undefined, {
+        dateStyle: "short",
+        timeStyle: "medium",
+      })
     }
   }
 
@@ -210,7 +233,7 @@ export default async function Home() {
             <p className="text-xs opacity-60">DEX data last updated: {lastUpdated}</p>
             <p className="text-xs opacity-60">Dune data last updated: {formattedLastRefresh}</p>
             <p className="text-xs opacity-60">
-              Next Dune refresh: {hoursUntilRefresh}h {minutesUntilRefresh}m
+              Next Dune refresh: {new Date(lastRefreshTime.getTime() + 4 * 60 * 60 * 1000).toLocaleString()}
             </p>
           </div>
           <p className="text-xl max-w-2xl mx-auto">Your Data Buddy for the Believe Coin Trenches</p>
@@ -227,6 +250,7 @@ export default async function Home() {
               <p className="text-sm opacity-80 mt-2">
                 Last updated: {new Date(totalMarketCap.latest_data_at).toLocaleString()}
               </p>
+              <DuneQueryLink queryId={5130872} className="mt-2 justify-center" />
             </DashcoinCardContent>
           </DashcoinCard>
 
@@ -237,6 +261,7 @@ export default async function Home() {
             <DashcoinCardContent className="text-center">
               <p className="dashcoin-text text-4xl text-dashYellow">{formattedCoinLaunches}</p>
               <p className="text-sm opacity-80 mt-2">Total coins tracked</p>
+              <DuneQueryLink queryId={5119173} className="mt-2 justify-center" />
             </DashcoinCardContent>
           </DashcoinCard>
         </div>
@@ -258,6 +283,7 @@ export default async function Home() {
                 hoursRemaining={hoursUntilRefresh}
                 minutesRemaining={minutesUntilRefresh}
               />
+              <DuneQueryLink queryId={5130872} className="mt-2" />
             </DashcoinCardContent>
           </DashcoinCard>
 
@@ -270,6 +296,7 @@ export default async function Home() {
               <div className="mt-2 pt-2 border-t border-dashGreen-light opacity-50">
                 <p className="text-sm">Estimated from market cap</p>
               </div>
+              <DuneQueryLink queryId={5119173} className="mt-2" />
             </DashcoinCardContent>
           </DashcoinCard>
 
@@ -282,6 +309,7 @@ export default async function Home() {
               <div className="mt-2 pt-2 border-t border-dashGreen-light opacity-50">
                 <p className="text-sm">Estimated at 0.3% of volume</p>
               </div>
+              <DuneQueryLink queryId={5119173} className="mt-2" />
             </DashcoinCardContent>
           </DashcoinCard>
         </div>
@@ -342,20 +370,4 @@ export default async function Home() {
       </footer>
     </div>
   )
-}
-
-// Wrapper components for async data
-async function MarketCapChartWrapper({ marketCapTimeDataPromise }: { marketCapTimeDataPromise: Promise<any> }) {
-  const marketCapTimeData = await marketCapTimeDataPromise
-  return <MarketCapChart data={marketCapTimeData} />
-}
-
-async function MarketCapPieWrapper({ tokenMarketCapsPromise }: { tokenMarketCapsPromise: Promise<any> }) {
-  const tokenMarketCaps = await tokenMarketCapsPromise
-  return <MarketCapPie data={tokenMarketCaps} />
-}
-
-async function TokenTableWrapper({ tokenDataPromise }: { tokenDataPromise: Promise<any> }) {
-  const tokenData = await tokenDataPromise
-  return <TokenTable data={tokenData} />
 }

@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react"
 import { DashcoinCard, DashcoinCardHeader, DashcoinCardTitle, DashcoinCardContent } from "@/components/ui/dashcoin-card"
 import type { TokenMarketCapData } from "@/types/dune"
 import { formatCurrency } from "@/lib/utils"
+import { DuneQueryLink } from "@/components/dune-query-link"
 
 interface MarketCapPieProps {
   data: TokenMarketCapData[]
@@ -118,6 +119,7 @@ export function MarketCapPie({ data }: MarketCapPieProps) {
         <div className="h-80">
           <canvas ref={chartRef} />
         </div>
+        <DuneQueryLink queryId={5129959} className="mt-2" />
       </DashcoinCardContent>
     </DashcoinCard>
   )

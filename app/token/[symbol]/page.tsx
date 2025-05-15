@@ -27,13 +27,33 @@ export default function TokenPage({ params }: { params: { symbol: string } }) {
   const [dexTimeRemaining, setDexTimeRemaining] = useState<number>(0)
 
   // Calculate formatted times and remaining time
-  const formattedDuneLastRefresh = duneLastRefresh ? duneLastRefresh.toLocaleString() : "N/A"
-  const formattedDuneNextRefresh = duneNextRefresh ? duneNextRefresh.toLocaleString() : "N/A"
+  const formattedDuneLastRefresh = duneLastRefresh
+    ? duneLastRefresh.toLocaleString(undefined, {
+        dateStyle: "short",
+        timeStyle: "medium",
+      })
+    : "N/A"
+  const formattedDuneNextRefresh = duneNextRefresh
+    ? duneNextRefresh.toLocaleString(undefined, {
+        dateStyle: "short",
+        timeStyle: "medium",
+      })
+    : "N/A"
+  const formattedDexLastRefresh = dexLastRefresh
+    ? dexLastRefresh.toLocaleString(undefined, {
+        dateStyle: "short",
+        timeStyle: "medium",
+      })
+    : "N/A"
+  const formattedDexNextRefresh = dexNextRefresh
+    ? dexNextRefresh.toLocaleString(undefined, {
+        dateStyle: "short",
+        timeStyle: "medium",
+      })
+    : "N/A"
   const duneHoursRemaining = Math.floor(duneTimeRemaining / (60 * 60 * 1000))
   const duneMinutesRemaining = Math.floor((duneTimeRemaining % (60 * 60 * 1000)) / (60 * 1000))
 
-  const formattedDexLastRefresh = dexLastRefresh ? dexLastRefresh.toLocaleString() : "N/A"
-  const formattedDexNextRefresh = dexNextRefresh ? dexNextRefresh.toLocaleString() : "N/A"
   const dexMinutesRemaining = Math.floor(dexTimeRemaining / (60 * 1000))
 
   useEffect(() => {
@@ -299,14 +319,12 @@ export default function TokenPage({ params }: { params: { symbol: string } }) {
                   <div>
                     <p>Dune data last updated:</p>
                     <p className="font-mono">{formattedDuneLastRefresh}</p>
-                    <p>
-                      Next refresh in: {duneHoursRemaining}h {duneMinutesRemaining}m
-                    </p>
+                    <p>Next refresh: {formattedDuneNextRefresh}</p>
                   </div>
                   <div>
                     <p>DEX data last updated:</p>
                     <p className="font-mono">{formattedDexLastRefresh}</p>
-                    <p>Next refresh in: {dexMinutesRemaining}m</p>
+                    <p>Next refresh: {formattedDexNextRefresh}</p>
                   </div>
                 </div>
               </div>

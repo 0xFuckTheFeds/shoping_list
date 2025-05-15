@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react"
 import { DashcoinCard, DashcoinCardHeader, DashcoinCardTitle, DashcoinCardContent } from "@/components/ui/dashcoin-card"
 import type { MarketCapTimeData } from "@/types/dune"
 import { formatCurrency } from "@/lib/utils"
+import { DuneQueryLink } from "@/components/dune-query-link"
 
 // We'll use Chart.js for the charts
 // This would normally be installed via npm, but for this example we'll load it from CDN
@@ -20,32 +21,6 @@ interface MarketCapChartProps {
 export function MarketCapChart({ data }: MarketCapChartProps) {
   const chartRef = useRef<HTMLCanvasElement>(null)
   const chartInstance = useRef<any>(null)
-
-  useEffect(() => {
-    // Load Chart.js from CDN
-    const script = document.createElement("script")
-    script.src = "https://cdn.jsdelivr.net/npm/chart.js"
-    script.async = true
-    script.onload = () => {
-      if (chartRef.current && data.length > 0) {
-        createChart()
-      }
-    }
-    document.body.appendChild(script)
-
-    return () => {
-      document.body.removeChild(script)
-      if (chartInstance.current) {
-        chartInstance.current.destroy()
-      }
-    }
-  }, [])
-
-  useEffect(() => {
-    if (window.Chart && chartRef.current && data.length > 0) {
-      createChart()
-    }
-  }, [data])
 
   const createChart = () => {
     if (chartInstance.current) {
@@ -141,6 +116,32 @@ export function MarketCapChart({ data }: MarketCapChartProps) {
     })
   }
 
+  useEffect(() => {
+    // Load Chart.js from CDN
+    const script = document.createElement("script")
+    script.src = "https://cdn.jsdelivr.net/npm/chart.js"
+    script.async = true
+    script.onload = () => {
+      if (chartRef.current && data.length > 0) {
+        createChart()
+      }
+    }
+    document.body.appendChild(script)
+
+    return () => {
+      document.body.removeChild(script)
+      if (chartInstance.current) {
+        chartInstance.current.destroy()
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (window.Chart && chartRef.current && data.length > 0) {
+      createChart()
+    }
+  }, [data])
+
   return (
     <DashcoinCard>
       <DashcoinCardHeader>
@@ -150,6 +151,7 @@ export function MarketCapChart({ data }: MarketCapChartProps) {
         <div className="h-80">
           <canvas ref={chartRef} />
         </div>
+        <DuneQueryLink queryId={5119241} className="mt-2" />
       </DashcoinCardContent>
     </DashcoinCard>
   )

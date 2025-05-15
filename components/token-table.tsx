@@ -8,6 +8,7 @@ import { ChevronDown, ChevronUp, Search, Loader2 } from "lucide-react"
 import { fetchPaginatedTokens } from "@/app/actions/dune-actions"
 import type { TokenData, PaginatedTokenResponse } from "@/types/dune"
 import { CopyAddress } from "@/components/copy-address"
+import { DuneQueryLink } from "@/components/dune-query-link"
 
 export default function TokenTable({ data }: { data: PaginatedTokenResponse | TokenData[] }) {
   // Convert legacy data format to new format if needed
@@ -246,6 +247,11 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
           </table>
         </div>
       </DashcoinCard>
+
+      {/* Dune Query Link */}
+      <div className="flex justify-end mt-2">
+        <DuneQueryLink queryId={5129959} />
+      </div>
 
       {/* Pagination */}
       {tokenData.totalPages > 1 && (
