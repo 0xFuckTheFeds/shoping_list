@@ -244,8 +244,6 @@ export default async function Home() {
                 height={128}
                 className="object-contain rounded-full overflow-hidden"
                 style={{ clipPath: "circle(50%)" }} // This attempts to clip to a circle
-                priority
-                unoptimized
               />
             </div>
             <h1 className="dashcoin-title text-5xl md:text-7xl text-dashYellow">DASHCOIN TRACKER</h1>
@@ -257,8 +255,6 @@ export default async function Home() {
                 height={128}
                 className="object-contain scale-x-[-1] rounded-full overflow-hidden"
                 style={{ clipPath: "circle(50%)" }} // This attempts to clip to a circle
-                priority
-                unoptimized
               />
             </div>
           </div>

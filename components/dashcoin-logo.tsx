@@ -16,8 +16,6 @@ export function DashcoinLogo({ className = "", size = 40 }: DashcoinLogoProps) {
             width={size}
             height={size}
             className="rounded-full"
-            priority
-            unoptimized
           />
         </div>
         <span className="dashcoin-title text-dashYellow-light text-2xl" style={{ fontSize: `${size / 2}px` }}>
