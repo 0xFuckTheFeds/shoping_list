@@ -5,9 +5,9 @@ import Link from "next/link"
 import { formatCurrency } from "@/lib/utils"
 import { DashcoinCard } from "@/components/ui/dashcoin-card"
 import { ChevronDown, ChevronUp, Search, Loader2 } from "lucide-react"
-import type { PaginatedTokenResponse } from "@/types/dune"
+import { fetchPaginatedTokens } from "@/app/actions/dune-actions"
+import type { TokenData, PaginatedTokenResponse } from "@/types/dune"
 import { CopyAddress } from "@/components/copy-address"
-import type { TokenData } from "@/types/dune"
 
 // Map of token symbols to their correct Axiom Trade pair addresses
 const AXIOM_TRADE_PAIRS: Record<string, string> = {
@@ -15,24 +15,7 @@ const AXIOM_TRADE_PAIRS: Record<string, string> = {
   // Add more pairs as needed
 }
 
-interface TokenTableProps {
-  tokens: TokenData[]
-}
-
-function formatNumber(num: number): string {
-  if (num >= 1_000_000_000) {
-    return (num / 1_000_000_000).toFixed(2) + "B"
-  }
-  if (num >= 1_000_000) {
-    return (num / 1_000_000).toFixed(2) + "M"
-  }
-  if (num >= 1_000) {
-    return (num / 1_000).toFixed(2) + "K"
-  }
-  return num.toString()
-}
-
-export function TokenTable({ data }: { data: PaginatedTokenResponse | TokenData[] }) {
+export default function TokenTable({ data }: { data: PaginatedTokenResponse | TokenData[] }) {
   // Convert legacy data format to new format if needed
   const initialData = Array.isArray(data)
     ? { tokens: data, page: 1, pageSize: 10, totalTokens: data.length, totalPages: Math.ceil(data.length / 10) }
@@ -81,6 +64,23 @@ export function TokenTable({ data }: { data: PaginatedTokenResponse | TokenData[
     setFilteredTokens(filtered)
   }, [searchTerm, tokenData.tokens])
 
+  // Fetch data when page, pageSize, sort field, or sort direction changes
+  const fetchData = async () => {
+    setIsLoading(true)
+    try {
+      const newData = await fetchPaginatedTokens(currentPage, itemsPerPage, sortField, sortDirection)
+      setTokenData(newData)
+    } catch (error) {
+      console.error("Error fetching paginated tokens:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchData()
+  }, [currentPage, itemsPerPage, sortField, sortDirection])
+
   // Handle sort
   const handleSort = (field: string) => {
     if (sortField === field) {
@@ -89,6 +89,8 @@ export function TokenTable({ data }: { data: PaginatedTokenResponse | TokenData[
       setSortField(field)
       setSortDirection("desc")
     }
+    // Reset to page 1 when sorting changes
+    setCurrentPage(1)
   }
 
   // Render sort indicator
@@ -139,8 +141,6 @@ export function TokenTable({ data }: { data: PaginatedTokenResponse | TokenData[
             <option value="marketCap">Market Cap</option>
             <option value="num_holders">Holders</option>
             <option value="created_time">Created Date</option>
-            <option value="first_trade_time">First Trade</option>
-            <option value="vol_usd">Volume</option>
           </select>
           <select
             value={sortDirection}
@@ -152,7 +152,10 @@ export function TokenTable({ data }: { data: PaginatedTokenResponse | TokenData[
           </select>
           <select
             value={itemsPerPage}
-            onChange={(e) => setItemsPerPage(Number(e.target.value))}
+            onChange={(e) => {
+              setItemsPerPage(Number(e.target.value))
+              setCurrentPage(1) // Reset to first page when changing items per page
+            }}
             className="px-3 py-2 bg-dashGreen-dark border border-dashBlack rounded-md text-dashYellow-light focus:outline-none focus:ring-2 focus:ring-dashYellow"
           >
             <option value="10">10 per page</option>
@@ -187,12 +190,11 @@ export function TokenTable({ data }: { data: PaginatedTokenResponse | TokenData[
                 >
                   <div className="flex items-center gap-1">Holders {renderSortIndicator("num_holders")}</div>
                 </th>
-                <th className="text-left py-3 px-4 text-dashYellow">Created</th>
                 <th
                   className="text-left py-3 px-4 text-dashYellow cursor-pointer"
-                  onClick={() => handleSort("first_trade_time")}
+                  onClick={() => handleSort("created_time")}
                 >
-                  <div className="flex items-center gap-1">First Trade {renderSortIndicator("first_trade_time")}</div>
+                  <div className="flex items-center gap-1">Created {renderSortIndicator("created_time")}</div>
                 </th>
               </tr>
             </thead>
@@ -249,18 +251,15 @@ export function TokenTable({ data }: { data: PaginatedTokenResponse | TokenData[
                       <td className="py-3 px-4">
                         {token && token.created_time ? new Date(token.created_time).toLocaleDateString() : "N/A"}
                       </td>
-                      <td className="py-3 px-4">
-                        {token && token.first_trade_time
-                          ? new Date(token.first_trade_time).toLocaleDateString()
-                          : "N/A"}
-                      </td>
                     </tr>
                   )
                 })
               ) : (
                 <tr>
                   <td colSpan={6} className="py-8 text-center opacity-80">
-                    No token data available
+                    {searchTerm
+                      ? "No tokens found matching your search."
+                      : "No token data available. Check your Dune query or API key."}
                   </td>
                 </tr>
               )}
@@ -270,25 +269,105 @@ export function TokenTable({ data }: { data: PaginatedTokenResponse | TokenData[
       </DashcoinCard>
 
       {/* Pagination */}
-      <div className="flex justify-between items-center mt-4">
-        <button
-          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-          disabled={currentPage === 1 || isLoading}
-          className="px-3 py-1 bg-dashGreen-dark border border-dashBlack rounded-md text-dashYellow-light disabled:opacity-50"
-        >
-          Previous
-        </button>
-        <span className="text-sm opacity-80">
-          Page {currentPage} of {initialData.totalPages}
-        </span>
-        <button
-          onClick={() => setCurrentPage(Math.min(initialData.totalPages, currentPage + 1))}
-          disabled={currentPage === initialData.totalPages || isLoading}
-          className="px-3 py-1 bg-dashGreen-dark border border-dashBlack rounded-md text-dashYellow-light disabled:opacity-50"
-        >
-          Next
-        </button>
-      </div>
+      {tokenData.totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row justify-between items-center mt-4 gap-4">
+          <div className="text-sm opacity-80">
+            Showing page {currentPage} of {tokenData.totalPages} ({tokenData.totalTokens} total tokens)
+          </div>
+          <div className="flex flex-wrap gap-2 justify-center">
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1 || isLoading}
+              className="px-3 py-1 bg-dashGreen-dark border border-dashBlack rounded-md text-dashYellow-light disabled:opacity-50"
+            >
+              First
+            </button>
+            <button
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1 || isLoading}
+              className="px-3 py-1 bg-dashGreen-dark border border-dashBlack rounded-md text-dashYellow-light disabled:opacity-50"
+            >
+              Previous
+            </button>
+
+            {/* Page number buttons */}
+            <div className="flex flex-wrap gap-1">
+              {generatePageNumbers(currentPage, tokenData.totalPages).map((pageNum) =>
+                pageNum === 0 ? (
+                  <span key={`ellipsis-${pageNum}`} className="w-8 h-8 flex items-center justify-center">
+                    ...
+                  </span>
+                ) : (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    disabled={isLoading}
+                    className={`w-8 h-8 rounded-md ${
+                      currentPage === pageNum
+                        ? "bg-dashYellow text-dashBlack"
+                        : "bg-dashGreen-dark border border-dashBlack text-dashYellow-light"
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                ),
+              )}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage(Math.min(tokenData.totalPages, currentPage + 1))}
+              disabled={currentPage === tokenData.totalPages || isLoading}
+              className="px-3 py-1 bg-dashGreen-dark border border-dashBlack rounded-md text-dashYellow-light disabled:opacity-50"
+            >
+              Next
+            </button>
+            <button
+              onClick={() => setCurrentPage(tokenData.totalPages)}
+              disabled={currentPage === tokenData.totalPages || isLoading}
+              className="px-3 py-1 bg-dashGreen-dark border border-dashBlack rounded-md text-dashYellow-light disabled:opacity-50"
+            >
+              Last
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
+}
+
+// Helper function to generate page numbers for pagination
+function generatePageNumbers(currentPage: number, totalPages: number): number[] {
+  // If 7 or fewer pages, show all pages
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1)
+  }
+
+  // Always include first and last page
+  const pages: number[] = []
+
+  // Always show page 1
+  pages.push(1)
+
+  // If current page is close to the beginning
+  if (currentPage <= 4) {
+    pages.push(2, 3, 4, 5)
+    pages.push(0) // Ellipsis placeholder
+    pages.push(totalPages)
+    return pages
+  }
+
+  // If current page is close to the end
+  if (currentPage >= totalPages - 3) {
+    pages.push(0) // Ellipsis placeholder
+    pages.push(totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages)
+    return pages
+  }
+
+  // Current page is in the middle
+  pages.push(0) // Ellipsis placeholder
+  pages.push(currentPage - 1, currentPage, currentPage + 1)
+  pages.push(0) // Ellipsis placeholder
+  pages.push(totalPages)
+
+  return pages
 }

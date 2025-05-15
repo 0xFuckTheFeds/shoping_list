@@ -66,11 +66,11 @@ export interface DexscreenerTokenResponse {
 
 // In-memory cache for Dexscreener data
 const dexscreenerCache = new Map<string, { data: any; timestamp: number }>()
-const CACHE_TTL = 15 * 60 * 1000 // 15 minutes cache
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes cache
 
 // Track API call times to implement rate limiting
 const apiCallTimes: number[] = []
-const MAX_CALLS_PER_MINUTE = 20 // Dexscreener limit is 60, but we'll be very conservative
+const MAX_CALLS_PER_MINUTE = 30 // Dexscreener limit is 60, but we'll be conservative
 
 /**
  * Check if we're within rate limits

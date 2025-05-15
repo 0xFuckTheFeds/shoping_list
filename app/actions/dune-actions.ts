@@ -10,79 +10,28 @@ import type {
   TokenMarketCapData,
   TotalMarketCapData,
   PaginatedTokenResponse,
+  VolumeByTokenData,
 } from "@/types/dune"
-
-import { getCacheItem, setCacheItem, shouldFetchFromDune, shouldUseRealAPI, CACHE_KEYS } from "@/lib/cache"
-import { getMockDataForQuery } from "@/lib/mock-data"
 
 // This is your Dune API key from environment variables
 const DUNE_API_KEY = process.env.DUNE_API_KEY
 
-// Cache duration (2.5 hours in milliseconds)
-const CACHE_DURATION = 2.5 * 60 * 60 * 1000
-
-// List of disabled queries that should never be executed directly
-const DISABLED_QUERIES = [5129959, 5130872, 5129347, 5119173]
-
-// List of enabled queries
-const ENABLED_QUERIES = [5140151, 5119241]
-
-// Add a flag to track if a refresh is in progress
-let isRefreshing = false
-// Add a timestamp for last user-triggered refresh
-let lastUserRefreshTime = 0
-// Add a minimum interval between user-triggered refreshes (5 minutes)
-const USER_REFRESH_INTERVAL = 5 * 60 * 1000
-
-// Store the main token data globally to avoid redundant fetches
-let globalTokenData: TokenData[] | null = null
-let globalTokenDataTimestamp = 0
+// In-memory cache for token data to avoid refetching from Dune
+let allTokensCache: TokenData[] | null = null
+let volumeTokensCache: VolumeByTokenData[] | null = null
+let lastFetchTime = 0
+let lastVolumeFetchTime = 0
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
 /**
  * Fetch results directly from a Dune query using the results endpoint
  */
 async function fetchDuneQueryResults(queryId: number, limit = 1000) {
-  // Check if this is a disabled query
-  if (DISABLED_QUERIES.includes(queryId)) {
-    console.log(`Query ${queryId} is disabled. Using mock data instead.`)
-    return getMockDataForQuery(queryId)
-  }
-
-  // Check if this is an enabled query
-  if (!ENABLED_QUERIES.includes(queryId)) {
-    console.log(`Query ${queryId} is not in the enabled list. Using mock data instead.`)
-    return getMockDataForQuery(queryId)
-  }
-
-  // Check if we should use the real API
-  if (!shouldUseRealAPI()) {
-    console.log(`Using mock data for query ${queryId} (API disabled or non-production environment)`)
-    return getMockDataForQuery(queryId)
-  }
-
-  // Check if we should fetch from Dune based on cache status
-  const cacheKey = `${CACHE_KEYS.LAST_FETCH_TIME}:${queryId}`
-  const shouldFetch = await shouldFetchFromDune(cacheKey, CACHE_DURATION)
-
-  if (!shouldFetch) {
-    console.log(`Using cached data for query ${queryId}`)
-    const cachedData = await getCacheItem(`${CACHE_KEYS.TOKEN_DATA}:${queryId}`)
-    if (cachedData) {
-      return cachedData
-    }
-
-    // If no cached data, use mock data as fallback
-    console.log(`No cached data found for query ${queryId}, using mock data`)
-    return getMockDataForQuery(queryId)
-  }
-
   if (!DUNE_API_KEY) {
-    console.log("DUNE_API_KEY is not set, using mock data")
-    return getMockDataForQuery(queryId)
+    throw new Error("DUNE_API_KEY is not set")
   }
 
   try {
-    console.log(`Fetching data from Dune for query ${queryId}`)
     const response = await fetch(`https://api.dune.com/api/v1/query/${queryId}/results?limit=${limit}`, {
       headers: {
         "X-Dune-API-Key": DUNE_API_KEY,
@@ -94,24 +43,10 @@ async function fetchDuneQueryResults(queryId: number, limit = 1000) {
     }
 
     const data = await response.json()
-
-    // Cache the result
-    await setCacheItem(`${CACHE_KEYS.TOKEN_DATA}:${queryId}`, data.result, CACHE_DURATION / 1000)
-
     return data.result
   } catch (error) {
     console.error("Error fetching Dune query results:", error)
-
-    // If API call fails, try to use cached data
-    const cachedData = await getCacheItem(`${CACHE_KEYS.TOKEN_DATA}:${queryId}`)
-    if (cachedData) {
-      console.log(`Using cached data for query ${queryId} due to API error`)
-      return cachedData
-    }
-
-    // If no cached data, use mock data as fallback
-    console.log(`No cached data found for query ${queryId}, using mock data as fallback`)
-    return getMockDataForQuery(queryId)
+    throw error
   }
 }
 
@@ -119,26 +54,11 @@ async function fetchDuneQueryResults(queryId: number, limit = 1000) {
  * Execute a Dune query and return the results
  */
 async function executeDuneQuery(queryId: number, parameters: DuneQueryParameter[] = []) {
-  // Check if this is a disabled query
-  if (DISABLED_QUERIES.includes(queryId)) {
-    console.log(`Query ${queryId} is disabled. Using mock data instead.`)
-    return getMockDataForQuery(queryId)
-  }
-
-  // Check if this is an enabled query
-  if (!ENABLED_QUERIES.includes(queryId)) {
-    console.log(`Query ${queryId} is not in the enabled list. Using mock data instead.`)
-    return getMockDataForQuery(queryId)
-  }
-
-  // Check if we should use the real API
-  if (!shouldUseRealAPI()) {
-    console.log(`Using mock data for query execution ${queryId} (API disabled or non-production environment)`)
-    return getMockDataForQuery(queryId)
+  if (!DUNE_API_KEY) {
+    throw new Error("DUNE_API_KEY is not set")
   }
 
   try {
-    console.log(`Executing query ${queryId} on Dune`)
     // Step 1: Execute the query
     const executeResponse = await fetch(`https://api.dune.com/api/v1/query/${queryId}/execute`, {
       method: "POST",
@@ -203,131 +123,93 @@ async function executeDuneQuery(queryId: number, parameters: DuneQueryParameter[
     }
 
     const resultsData = await resultsResponse.json()
-
-    // Cache the result
-    await setCacheItem(
-      `${CACHE_KEYS.TOKEN_DATA}:exec:${queryId}:${JSON.stringify(parameters)}`,
-      resultsData.result,
-      CACHE_DURATION / 1000,
-    )
-
     return resultsData.result
   } catch (error) {
     console.error("Error executing Dune query:", error)
-
-    // If API call fails, try to use cached data
-    const cachedData = await getCacheItem(`${CACHE_KEYS.TOKEN_DATA}:exec:${queryId}:${JSON.stringify(parameters)}`)
-    if (cachedData) {
-      console.log(`Using cached data for query execution ${queryId} due to API error`)
-      return cachedData
-    }
-
-    // If no cached data, use mock data as fallback
-    console.log(`No cached data found for query execution ${queryId}, using mock data as fallback`)
-    return getMockDataForQuery(queryId)
+    throw error
   }
 }
 
 /**
- * Fetch all token data with fallback to cached data
- * This is the main function that fetches data from query 5140151
+ * Fetch volume by token data from Dune query 5119173
  */
-export async function fetchAllTokensFromDune(): Promise<TokenData[]> {
+async function fetchVolumeByToken(): Promise<VolumeByTokenData[]> {
   try {
-    // Check if we have recent global data (less than 5 minutes old)
+    // Check if we need to refresh the cache
     const now = Date.now()
-    if (globalTokenData && now - globalTokenDataTimestamp < 5 * 60 * 1000) {
-      console.log("Using global token data (less than 5 minutes old)")
-      return globalTokenData
+    if (volumeTokensCache && now - lastVolumeFetchTime <= CACHE_DURATION) {
+      return volumeTokensCache
     }
 
-    // Check if we should fetch from Dune based on cache status
-    const shouldFetch = await shouldFetchFromDune(CACHE_KEYS.LAST_FETCH_TIME, CACHE_DURATION)
-
-    // If we have cached token data and shouldn't fetch, use that
-    if (!shouldFetch) {
-      const cachedData = await getCacheItem<TokenData[]>(CACHE_KEYS.TOKEN_DATA)
-      if (cachedData) {
-        // Update global data
-        globalTokenData = cachedData
-        globalTokenDataTimestamp = now
-        return cachedData
-      }
-    }
-
-    // Use the new query 5140151 which has more comprehensive token data
-    const result = await fetchDuneQueryResults(5140151)
+    console.log("Fetching volume by token data from Dune")
+    const result = await fetchDuneQueryResults(5119173, 1000)
 
     if (result && result.rows && result.rows.length > 0) {
       // Process the data from the query
       const tokens = result.rows.map((row: any) => {
         return {
           token: row.token,
-          token_url: row.token_url,
           symbol: row.symbol,
-          name: row.name,
           vol_usd: Number.parseFloat(row.vol_usd),
           txs: Number.parseInt(row.txs),
           created_time: row.created_time,
-          first_trade_time: row.first_trade_time,
+        }
+      })
+
+      // Update cache
+      volumeTokensCache = tokens
+      lastVolumeFetchTime = now
+
+      return tokens
+    }
+
+    throw new Error("No volume data returned from Dune query")
+  } catch (error) {
+    console.error("Error fetching volume by token data from Dune:", error)
+    return []
+  }
+}
+
+/**
+ * Fetch all token data directly from Dune query 5129959 (Pie Chart of Believe Coins by Market Cap)
+ * This is used internally by the paginated function
+ */
+async function fetchAllTokensFromDune(): Promise<TokenData[]> {
+  try {
+    // Use query 5129959 which has the market cap data directly
+    const result = await fetchDuneQueryResults(5129959)
+
+    if (result && result.rows && result.rows.length > 0) {
+      // Process the data from the query
+      const tokens = result.rows.map((row: any) => {
+        return {
+          token: row.token_mint_address,
+          symbol: row.symbol,
+          name: row.name,
+          vol_usd: 0, // Not available in this query
+          txs: 0, // Not available in this query
+          created_time: row.date,
           description: `${row.name} (${row.symbol})`,
-          price: 0, // Will be enriched with Dexscreener data
+          price: 0, // Not available in this query
           marketCap: Number.parseFloat(row.market_cap_usd),
           num_holders: Number.parseInt(row.num_holders),
-          change24h: 0, // Will be enriched with Dexscreener data
-          change1h: 0, // Will be enriched with Dexscreener data
-          liquidity: 0, // Will be enriched with Dexscreener data
-          buys: 0, // Will be enriched with Dexscreener data
-          sells: 0, // Will be enriched with Dexscreener data
-          volume24h: Number.parseFloat(row.vol_usd),
+          change24h: 0, // Not available in this query
+          change1h: 0, // Not available in this query
+          liquidity: 0, // Not available in this query
+          buys: 0, // Not available in this query
+          sells: 0, // Not available in this query
+          volume24h: 0, // Not available in this query
         }
       })
 
       // Sort tokens by market cap (descending)
-      const sortedTokens = tokens.sort((a, b) => b.marketCap - a.marketCap)
-
-      // Update cache
-      await setCacheItem(CACHE_KEYS.TOKEN_DATA, sortedTokens, CACHE_DURATION / 1000)
-      await setCacheItem(CACHE_KEYS.LAST_FETCH_TIME, now)
-
-      // Update global data
-      globalTokenData = sortedTokens
-      globalTokenDataTimestamp = now
-
-      return sortedTokens
-    } else {
-      // If the query fails but we have cached data, use that instead
-      const cachedData = await getCacheItem<TokenData[]>(CACHE_KEYS.TOKEN_DATA)
-      if (cachedData) {
-        console.log("Dune query failed, using cached token data")
-        // Update global data
-        globalTokenData = cachedData
-        globalTokenDataTimestamp = now
-        return cachedData
-      }
+      return tokens.sort((a, b) => b.marketCap - a.marketCap)
     }
 
-    throw new Error("No data returned from Dune query and no cached data available")
+    throw new Error("No data returned from Dune query")
   } catch (error) {
     console.error("Error fetching token data from Dune:", error)
-
-    // If we have cached data, return that instead
-    const cachedData = await getCacheItem<TokenData[]>(CACHE_KEYS.TOKEN_DATA)
-    if (cachedData) {
-      console.log("Using cached token data due to error")
-      // Update global data
-      globalTokenData = cachedData
-      globalTokenDataTimestamp = Date.now()
-      return cachedData
-    }
-
-    // If all else fails, return mock data
-    console.log("No cached data available, using mock data")
-    const mockData = getMockDataForQuery(5140151).rows
-    // Update global data
-    globalTokenData = mockData
-    globalTokenDataTimestamp = Date.now()
-    return mockData
+    return []
   }
 }
 
@@ -341,15 +223,20 @@ export async function fetchPaginatedTokens(
   sortDirection = "desc",
 ): Promise<PaginatedTokenResponse> {
   try {
-    // Fetch all tokens (this will use cache if available)
-    const allTokens = await fetchAllTokensFromDune()
+    // Check if we need to refresh the cache
+    const now = Date.now()
+    if (!allTokensCache || now - lastFetchTime > CACHE_DURATION) {
+      console.log("Fetching all tokens from Dune (cache expired or not initialized)")
+      allTokensCache = await fetchAllTokensFromDune()
+      lastFetchTime = now
+    }
 
     // Calculate total tokens and pages
-    const totalTokens = allTokens.length
+    const totalTokens = allTokensCache.length
     const totalPages = Math.ceil(totalTokens / pageSize)
 
     // Sort the tokens based on the requested sort field and direction
-    const sortedTokens = [...allTokens].sort((a, b) => {
+    const sortedTokens = [...allTokensCache].sort((a, b) => {
       const aValue = a[sortField as keyof typeof a] || 0
       const bValue = b[sortField as keyof typeof b] || 0
 
@@ -401,12 +288,10 @@ export async function fetchTokenData(): Promise<TokenData[]> {
 }
 
 /**
- * Fetch market cap over time data with fallback to estimated data
- * This is the only function that still uses the original query (5119241)
+ * Fetch market cap over time data (5119241)
  */
 export async function fetchMarketCapOverTime(): Promise<MarketCapTimeData[]> {
   try {
-    // Try to fetch from Dune using the original query
     const result = await fetchDuneQueryResults(5119241)
 
     if (result && result.rows && result.rows.length > 0) {
@@ -420,203 +305,125 @@ export async function fetchMarketCapOverTime(): Promise<MarketCapTimeData[]> {
       }))
     }
 
-    // If Dune query fails, generate estimated data
-    console.log("Generating estimated market cap time data")
-
-    // Fetch all tokens (this will use cache if available)
-    const allTokens = await fetchAllTokensFromDune()
-
-    // Generate estimated time series data based on current market cap
-    const totalMarketCap = allTokens.reduce((sum, token) => sum + (token.marketCap || 0), 0)
-    const totalHolders = allTokens.reduce((sum, token) => sum + (token.num_holders || 0), 0)
-
-    // Generate data points for the last 30 days
-    const timeSeriesData: MarketCapTimeData[] = []
-    const today = new Date()
-
-    // Create synthetic data points with some randomness to simulate real data
-    for (let i = 30; i >= 0; i--) {
-      const date = new Date(today)
-      date.setDate(date.getDate() - i)
-
-      // Add some randomness to market cap (±10%)
-      const randomFactor = 0.9 + Math.random() * 0.2
-      // Market cap generally increases over time
-      const growthFactor = 1 - i / 35 // Older dates have lower market caps
-
-      const marketcap = totalMarketCap * randomFactor * growthFactor
-
-      // Holders also increase over time but more steadily
-      const holderGrowthFactor = 1 - i / 40
-      const num_holders = Math.round(totalHolders * holderGrowthFactor)
-
-      // Calculate daily changes
-      const prevDay = timeSeriesData[timeSeriesData.length - 1]
-      const nh_diff_1d = prevDay ? num_holders - prevDay.num_holders : Math.round(num_holders * 0.01)
-
-      // Weekly and monthly changes
-      const nh_diff_7d = Math.round(num_holders * 0.05)
-      const nh_diff_30d = Math.round(num_holders * 0.15)
-
-      timeSeriesData.push({
-        date: date.toISOString().split("T")[0],
-        marketcap,
-        num_holders,
-        nh_diff_1d,
-        nh_diff_7d,
-        nh_diff_30d,
-      })
-    }
-
-    return timeSeriesData
+    throw new Error("No market cap time data returned from Dune query")
   } catch (error) {
-    console.error("Error generating market cap time data:", error)
-    return getMockDataForQuery(5119241).rows
+    console.error("Error fetching market cap time data:", error)
+    return []
   }
 }
 
 /**
- * Fetch token market cap data for pie chart
- * Now uses the main token data from query 5140151
+ * Fetch token market cap data for pie chart (5129959)
  */
 export async function fetchTokenMarketCaps(): Promise<TokenMarketCapData[]> {
-  console.log("Note: Using data derived from query 5140151 instead of the original query 5129959")
   try {
-    // Fetch all tokens (this will use cache if available)
-    const allTokens = await fetchAllTokensFromDune()
+    const result = await fetchDuneQueryResults(5129959)
 
-    // Convert to the format needed for the pie chart
-    return allTokens.map((token, index) => ({
-      date: new Date().toISOString().split("T")[0],
-      token_mint_address: token.token,
-      name: token.name || "",
-      symbol: token.symbol,
-      market_cap_usd: token.marketCap || 0,
-      num_holders: token.num_holders || 0,
-      rn: index + 1,
-    }))
+    if (result && result.rows && result.rows.length > 0) {
+      return result.rows.map((row: any) => ({
+        date: row.date,
+        token_mint_address: row.token_mint_address,
+        name: row.name,
+        symbol: row.symbol,
+        market_cap_usd: Number.parseFloat(row.market_cap_usd),
+        num_holders: Number.parseInt(row.num_holders),
+        rn: Number.parseInt(row.rn),
+      }))
+    }
+
+    throw new Error("No token market cap data returned from Dune query")
   } catch (error) {
     console.error("Error fetching token market cap data:", error)
-    return getMockDataForQuery(5129959).rows
+    return []
   }
 }
 
 /**
- * Fetch total market cap data
- * Now uses the main token data from query 5140151
+ * Fetch total market cap data (5130872)
  */
 export async function fetchTotalMarketCap(): Promise<TotalMarketCapData> {
-  console.log("Note: Using data derived from query 5140151 instead of the original query 5130872")
   try {
-    // Fetch all tokens (this will use cache if available)
-    const allTokens = await fetchAllTokensFromDune()
+    const result = await fetchDuneQueryResults(5130872)
 
-    // Calculate total market cap from the token data
-    const totalMarketCap = allTokens.reduce((sum, token) => sum + (token.marketCap || 0), 0)
-
-    // Get the last fetch time
-    const lastFetchTime = (await getCacheItem<number>(CACHE_KEYS.LAST_FETCH_TIME)) || Date.now()
-
-    return {
-      latest_data_at: new Date(lastFetchTime).toISOString(),
-      total_marketcap_usd: totalMarketCap,
+    if (result && result.rows && result.rows.length > 0) {
+      const row = result.rows[0]
+      return {
+        latest_data_at: row.latest_data_at,
+        total_marketcap_usd: Number.parseFloat(row.total_marketcap_usd),
+      }
     }
+
+    throw new Error("No total market cap data returned from Dune query")
   } catch (error) {
     console.error("Error fetching total market cap data:", error)
-    return getMockDataForQuery(5130872).rows[0]
-  }
-}
-
-/**
- * Fetch new token data
- * Now uses the main token data from query 5140151
- */
-export async function fetchNewTokens(limit = 10): Promise<NewTokenData[]> {
-  console.log("Note: Using data derived from query 5140151 instead of the original query 5129347")
-  try {
-    // Fetch all tokens (this will use cache if available)
-    const allTokens = await fetchAllTokensFromDune()
-
-    // Sort by created_time (newest first) and take the first 'limit' tokens
-    const newTokens = [...allTokens]
-      .sort((a, b) => new Date(b.created_time).getTime() - new Date(a.created_time).getTime())
-      .slice(0, limit)
-      .map((token) => ({
-        token_mint_address: token.token,
-        created_time: token.created_time,
-        name: token.name || "Unknown",
-        symbol: token.symbol || "???",
-        market_cap_usd: token.marketCap || 0,
-        num_holders: token.num_holders || 0,
-      }))
-
-    return newTokens
-  } catch (error) {
-    console.error("Error fetching new token data:", error)
-    return getMockDataForQuery(5129347).rows.slice(0, limit)
-  }
-}
-
-/**
- * Fetch data from Dexscreener API in batches
- */
-async function batchFetchTokenData(tokenAddresses: string[]): Promise<any[]> {
-  const batchSize = 10
-  const results = []
-
-  for (let i = 0; i < tokenAddresses.length; i += batchSize) {
-    const batch = tokenAddresses.slice(i, i + batchSize)
-    const addresses = batch.join(",")
-    try {
-      const response = await fetch(`https://api.dexscreener.com/latest/multichain/tokens/${addresses}`)
-      if (response.ok) {
-        const data = await response.json()
-        results.push(data)
-      } else {
-        console.error(`Failed to fetch Dexscreener data: ${response.statusText}`)
-        results.push(null) // Push null to maintain the order of results
-      }
-    } catch (error) {
-      console.error("Error fetching Dexscreener data:", error)
-      results.push(null) // Push null to maintain the order of results
+    return {
+      latest_data_at: new Date().toISOString(),
+      total_marketcap_usd: 0,
     }
   }
-
-  return results
 }
 
 /**
- * Fetch market statistics based on token data and Dexscreener
- * Now uses the main token data from query 5140151
+ * Fetch new token data (5129347)
+ */
+export async function fetchNewTokens(limit = 10): Promise<NewTokenData[]> {
+  try {
+    const result = await fetchDuneQueryResults(5129347)
+
+    if (result && result.rows && result.rows.length > 0) {
+      return result.rows.slice(0, limit).map((row: any) => ({
+        token_mint_address: row.token_mint_address,
+        created_time: row.created_time,
+        name: row.name || "Unknown",
+        symbol: row.symbol || "???",
+        market_cap_usd: row.market_cap_usd ? Number.parseFloat(row.market_cap_usd) : 0,
+        num_holders: Number.parseInt(row.num_holders),
+      }))
+    }
+
+    throw new Error("No new token data returned from Dune query")
+  } catch (error) {
+    console.error("Error fetching new token data:", error)
+    return []
+  }
+}
+
+/**
+ * Fetch market statistics based on token data
  */
 export async function fetchMarketStats(): Promise<MarketStats> {
   try {
-    // Fetch all tokens (this will use cache if available)
-    const allTokens = await fetchAllTokensFromDune()
+    // Fetch volume by token data for more accurate stats
+    const volumeTokens = await fetchVolumeByToken()
+    const totalMarketCapData = await fetchTotalMarketCap()
 
-    // Calculate total market cap from the token data
-    const totalMarketCap = allTokens.reduce((sum, token) => sum + (token.marketCap || 0), 0)
+    if (volumeTokens.length > 0) {
+      // Calculate totals
+      const totalMarketCap = totalMarketCapData.total_marketcap_usd || 0
 
-    // Calculate total volume from the token data
-    const totalVolume = allTokens.reduce((sum, token) => sum + (token.vol_usd || 0), 0)
+      // Calculate total volume from the volume data
+      const volume24h = volumeTokens.reduce((sum, token) => sum + (token.vol_usd || 0), 0)
 
-    // Calculate total transactions from the token data
-    const totalTransactions = allTokens.reduce((sum, token) => sum + (token.txs || 0), 0)
+      // Calculate total transactions from the volume data
+      const transactions24h = volumeTokens.reduce((sum, token) => sum + (token.txs || 0), 0)
 
-    // Calculate fee earnings (0.3% of volume)
-    const feeEarnings24h = totalVolume * 0.003
+      // Calculate fee earnings (e.g., 0.3% of volume)
+      const feeEarnings24h = volume24h * 0.003
 
-    // Count total number of tokens
-    const coinLaunches = allTokens.length
+      // Count total number of tokens
+      const coinLaunches = volumeTokens.length
 
-    return {
-      totalMarketCap,
-      volume24h: totalVolume,
-      transactions24h: totalTransactions,
-      feeEarnings24h,
-      lifetimeVolume: totalVolume * 30, // Estimate lifetime as 30 days of volume
-      coinLaunches,
+      return {
+        totalMarketCap,
+        volume24h,
+        transactions24h,
+        feeEarnings24h,
+        lifetimeVolume: volume24h * 30, // Estimate lifetime as 30 days of volume
+        coinLaunches,
+      }
     }
+
+    throw new Error("No token data available to calculate market stats")
   } catch (error) {
     console.error("Error calculating market stats:", error)
     // Return default values in case of error
@@ -633,18 +440,41 @@ export async function fetchMarketStats(): Promise<MarketStats> {
 
 /**
  * Fetch data for a specific token
- * Now uses the main token data from query 5140151
  */
 export async function fetchTokenDetails(symbol: string): Promise<TokenData | null> {
   try {
-    // Fetch all tokens (this will use cache if available)
-    const allTokens = await fetchAllTokensFromDune()
+    // Check if we need to refresh the cache
+    const now = Date.now()
+    if (!allTokensCache || now - lastFetchTime > CACHE_DURATION) {
+      console.log("Fetching all tokens from Dune (cache expired or not initialized)")
+      allTokensCache = await fetchAllTokensFromDune()
+      lastFetchTime = now
+    }
 
     // Find the token in the cache
-    const token = allTokens.find((token) => token.symbol.toLowerCase() === symbol.toLowerCase())
+    const token = allTokensCache.find((token) => token.symbol.toLowerCase() === symbol.toLowerCase())
 
     if (!token) {
       return null
+    }
+
+    // Try to enrich with volume data if available
+    if (!volumeTokensCache || now - lastVolumeFetchTime > CACHE_DURATION) {
+      console.log("Fetching volume data for token details")
+      volumeTokensCache = await fetchVolumeByToken()
+      lastVolumeFetchTime = now
+    }
+
+    // Find matching volume data
+    const volumeData = volumeTokensCache.find((vt) => vt.token === token.token || vt.symbol === token.symbol)
+
+    if (volumeData) {
+      return {
+        ...token,
+        vol_usd: volumeData.vol_usd || 0,
+        txs: volumeData.txs || 0,
+        volume24h: volumeData.vol_usd || 0,
+      }
     }
 
     return token
@@ -652,65 +482,4 @@ export async function fetchTokenDetails(symbol: string): Promise<TokenData | nul
     console.error("Error fetching token details:", error)
     return null
   }
-}
-
-/**
- * Trigger a manual refresh of all data
- * This will only refresh if the minimum interval has passed since the last refresh
- */
-export async function triggerManualRefresh(): Promise<{ success: boolean; message: string }> {
-  const now = Date.now()
-
-  // Check if a refresh is already in progress
-  if (isRefreshing) {
-    return {
-      success: false,
-      message: "A data refresh is already in progress. Please wait.",
-    }
-  }
-
-  // Check if minimum interval has passed since last user refresh
-  if (now - lastUserRefreshTime < USER_REFRESH_INTERVAL) {
-    const remainingSeconds = Math.ceil((USER_REFRESH_INTERVAL - (now - lastUserRefreshTime)) / 1000)
-    return {
-      success: false,
-      message: `Please wait ${remainingSeconds} seconds before refreshing again.`,
-    }
-  }
-
-  try {
-    isRefreshing = true
-    lastUserRefreshTime = now
-
-    // Clear caches to force refresh
-    await setCacheItem(CACHE_KEYS.LAST_FETCH_TIME, 0)
-
-    // Clear global cache
-    globalTokenData = null
-    globalTokenDataTimestamp = 0
-
-    // Fetch new data
-    await fetchAllTokensFromDune()
-
-    isRefreshing = false
-    return {
-      success: true,
-      message: "Data refreshed successfully!",
-    }
-  } catch (error) {
-    isRefreshing = false
-    console.error("Error during manual refresh:", error)
-    return {
-      success: false,
-      message: "Failed to refresh data. Please try again later.",
-    }
-  }
-}
-
-/**
- * Get the timestamp of the last data refresh
- */
-export async function getLastUpdateTime(): Promise<number> {
-  const lastFetchTime = await getCacheItem<number>(CACHE_KEYS.LAST_FETCH_TIME)
-  return lastFetchTime || Date.now()
 }

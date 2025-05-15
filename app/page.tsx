@@ -12,15 +12,13 @@ import {
   fetchPaginatedTokens,
   fetchTokenMarketCaps,
   fetchTotalMarketCap,
-  getLastUpdateTime,
 } from "./actions/dune-actions"
 import { fetchDexscreenerTokenData } from "./actions/dexscreener-actions"
 import { formatCurrency } from "@/lib/utils"
 import EnvSetup from "./env-setup"
 import { Suspense } from "react"
+import TokenTable from "@/components/token-table"
 import { CopyAddress } from "@/components/copy-address"
-import { DataFreshness } from "@/components/data-freshness"
-import { TokenTable } from "@/components/token-table"
 
 export default async function Home() {
   // Check if DUNE_API_KEY is set
@@ -38,10 +36,10 @@ export default async function Home() {
   // Dashcoin X (Twitter) link
   const dashcoinXLink = "https://x.com/dune_dashcoin"
 
-  // Fetch data from Dune - all using the same query except for market cap time data
+  // Fetch data from Dune
   const marketStatsPromise = fetchMarketStats()
   const tokenDataPromise = fetchPaginatedTokens(1, 10, "marketCap", "desc") // Only fetch first page with 10 tokens
-  const marketCapTimeDataPromise = fetchMarketCapOverTime() // This still uses the original query
+  const marketCapTimeDataPromise = fetchMarketCapOverTime()
   const tokenMarketCapsPromise = fetchTokenMarketCaps()
   const totalMarketCapPromise = fetchTotalMarketCap()
 
@@ -70,7 +68,6 @@ export default async function Home() {
   const dashcHolders = 0 // Dexscreener doesn't provide holders count
   let dashcPairAddress = ""
   let lastUpdated = new Date().toLocaleString()
-  let lastFetchTime: Date | null = null
 
   // Extract data from Dexscreener response if available
   if (dexscreenerData && dexscreenerData.pairs && dexscreenerData.pairs.length > 0) {
@@ -87,17 +84,12 @@ export default async function Home() {
     // If we have a timestamp for the data, use it
     if (pair.updatedAt) {
       lastUpdated = new Date(pair.updatedAt).toLocaleString()
-      lastFetchTime = new Date(pair.updatedAt)
     }
   }
-
-  // In the component, get the last update time
-  const lastUpdateTime = await getLastUpdateTime()
 
   return (
     <div className="min-h-screen">
       <header className="container mx-auto py-6 px-4">
-        {/* Remove the refresh button, keep only the theme toggle */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-4">
             <DashcoinLogo size={56} />
@@ -198,7 +190,7 @@ export default async function Home() {
           </div>
           {/* Last updated info */}
           <div className="mb-4 text-center">
-            <DataFreshness lastUpdated={lastUpdateTime || new Date()} />
+            <p className="text-xs opacity-60">Last updated: {lastUpdated}</p>
           </div>
           <p className="text-xl max-w-2xl mx-auto">Your Data Buddy for the Believe Coin Trenches</p>
         </div>
