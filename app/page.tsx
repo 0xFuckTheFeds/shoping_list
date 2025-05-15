@@ -5,6 +5,7 @@ import { DashcoinCard, DashcoinCardHeader, DashcoinCardTitle, DashcoinCardConten
 import { ThemeToggle } from "@/components/theme-toggle"
 import { MarketCapChart } from "@/components/market-cap-chart"
 import { MarketCapPie } from "@/components/market-cap-pie"
+import { NavTabs } from "@/components/nav-tabs"
 import {
   fetchMarketCapOverTime,
   fetchMarketStats,
@@ -89,7 +90,7 @@ export default async function Home() {
   return (
     <div className="min-h-screen">
       <header className="container mx-auto py-6 px-4">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-4">
             <DashcoinLogo size={56} />
             <a
@@ -105,6 +106,7 @@ export default async function Home() {
             <ThemeToggle />
           </div>
         </div>
+        <NavTabs />
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-8">
@@ -239,7 +241,7 @@ export default async function Home() {
             <DashcoinCardContent>
               <p className="dashcoin-text text-3xl text-dashYellow">{formattedVolume}</p>
               <div className="mt-2 pt-2 border-t border-dashGreen-light opacity-50">
-                <p className="text-sm">Estimated from market cap</p>
+                <p className="text-sm">From Dune Analytics</p>
               </div>
             </DashcoinCardContent>
           </DashcoinCard>
