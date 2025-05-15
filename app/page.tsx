@@ -296,7 +296,7 @@ export default async function Home() {
             <DashcoinCardContent>
               <p className="dashcoin-text text-3xl text-dashYellow">{formattedVolume}</p>
               <div className="mt-2 pt-2 border-t border-dashGreen-light opacity-50">
-                <p className="text-sm">Estimated from market cap</p>
+                <p className="text-sm">From Dune Analytics</p>
               </div>
               <DuneQueryLink queryId={5119173} className="mt-2" />
             </DashcoinCardContent>
