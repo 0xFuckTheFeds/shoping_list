@@ -81,7 +81,7 @@ export function NewTokensTable({ data }: NewTokensTableProps) {
           </table>
         </div>
         <div className="flex justify-end mt-4">
-          <DuneQueryLink queryId={5129347} />
+          <DuneQueryLink queryId={5140151} />
         </div>
       </DashcoinCardContent>
     </DashcoinCard>

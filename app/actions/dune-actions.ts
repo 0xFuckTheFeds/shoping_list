@@ -878,6 +878,7 @@ export async function fetchTotalMarketCap(): Promise<TotalMarketCapData> {
       return mockData
     }
 
+    // IMPORTANT: Make sure we're using query 5140151 consistently
     const result = await fetchDuneQueryResults(5140151)
 
     if (result && result.rows && result.rows.length > 0) {

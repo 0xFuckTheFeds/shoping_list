@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { refreshDuneData } from "@/app/actions/dune-actions"
+import { clearCache } from "@/lib/redis"
 
 // This secret key should be set in your environment variables
 const API_SECRET_KEY = process.env.API_SECRET_KEY || "default-secret-key-change-me"
@@ -12,6 +13,16 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Check if we should clear the cache first
+    const searchParams = request.nextUrl.searchParams
+    const clearCacheParam = searchParams.get("clearCache")
+
+    if (clearCacheParam === "true") {
+      // Clear all cache before refreshing
+      await clearCache()
+      console.log("Cache cleared before refresh")
+    }
+
     const refreshed = await refreshDuneData()
 
     if (refreshed) {
