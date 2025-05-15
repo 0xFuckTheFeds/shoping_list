@@ -120,17 +120,16 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
           >
             <option value="marketCap">Market Cap</option>
             <option value="num_holders">Holders</option>
-            <option value="symbol">Symbol</option>
-            <option value="name">Name</option>
             <option value="created_time">Created Date</option>
           </select>
-          <button
-            onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
-            className="px-3 py-2 bg-dashGreen-dark border border-dashBlack rounded-md text-dashYellow-light focus:outline-none focus:ring-2 focus:ring-dashYellow flex items-center gap-1"
+          <select
+            value={sortDirection}
+            onChange={(e) => setSortDirection(e.target.value as "asc" | "desc")}
+            className="px-3 py-2 bg-dashGreen-dark border border-dashBlack rounded-md text-dashYellow-light focus:outline-none focus:ring-2 focus:ring-dashYellow"
           >
-            {sortDirection === "asc" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            {sortDirection === "asc" ? "Asc" : "Desc"}
-          </button>
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+          </select>
           <select
             value={itemsPerPage}
             onChange={(e) => {

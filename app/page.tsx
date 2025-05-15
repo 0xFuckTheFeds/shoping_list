@@ -132,7 +132,7 @@ export default async function Home() {
         </div>
 
         {/* Market Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <DashcoinCard>
             <DashcoinCardHeader>
               <DashcoinCardTitle>Market Cap</DashcoinCardTitle>
@@ -151,18 +151,6 @@ export default async function Home() {
             </DashcoinCardHeader>
             <DashcoinCardContent>
               <p className="dashcoin-text text-3xl text-dashYellow">{formattedVolume}</p>
-              <div className="mt-2 pt-2 border-t border-dashGreen-light opacity-50">
-                <p className="text-sm">Estimated from market cap</p>
-              </div>
-            </DashcoinCardContent>
-          </DashcoinCard>
-
-          <DashcoinCard>
-            <DashcoinCardHeader>
-              <DashcoinCardTitle>Transactions</DashcoinCardTitle>
-            </DashcoinCardHeader>
-            <DashcoinCardContent>
-              <p className="dashcoin-text text-3xl text-dashYellow">{formattedTransactions}</p>
               <div className="mt-2 pt-2 border-t border-dashGreen-light opacity-50">
                 <p className="text-sm">Estimated from market cap</p>
               </div>

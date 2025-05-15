@@ -10,6 +10,7 @@ import type {
   TokenMarketCapData,
   TotalMarketCapData,
   PaginatedTokenResponse,
+  VolumeByTokenData,
 } from "@/types/dune"
 
 // This is your Dune API key from environment variables
@@ -17,7 +18,9 @@ const DUNE_API_KEY = process.env.DUNE_API_KEY
 
 // In-memory cache for token data to avoid refetching from Dune
 let allTokensCache: TokenData[] | null = null
+let volumeTokensCache: VolumeByTokenData[] | null = null
 let lastFetchTime = 0
+let lastVolumeFetchTime = 0
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
 /**
@@ -124,6 +127,46 @@ async function executeDuneQuery(queryId: number, parameters: DuneQueryParameter[
   } catch (error) {
     console.error("Error executing Dune query:", error)
     throw error
+  }
+}
+
+/**
+ * Fetch volume by token data from Dune query 5119173
+ */
+async function fetchVolumeByToken(): Promise<VolumeByTokenData[]> {
+  try {
+    // Check if we need to refresh the cache
+    const now = Date.now()
+    if (volumeTokensCache && now - lastVolumeFetchTime <= CACHE_DURATION) {
+      return volumeTokensCache
+    }
+
+    console.log("Fetching volume by token data from Dune")
+    const result = await fetchDuneQueryResults(5119173, 1000)
+
+    if (result && result.rows && result.rows.length > 0) {
+      // Process the data from the query
+      const tokens = result.rows.map((row: any) => {
+        return {
+          token: row.token,
+          symbol: row.symbol,
+          vol_usd: Number.parseFloat(row.vol_usd),
+          txs: Number.parseInt(row.txs),
+          created_time: row.created_time,
+        }
+      })
+
+      // Update cache
+      volumeTokensCache = tokens
+      lastVolumeFetchTime = now
+
+      return tokens
+    }
+
+    throw new Error("No volume data returned from Dune query")
+  } catch (error) {
+    console.error("Error fetching volume by token data from Dune:", error)
+    return []
   }
 }
 
@@ -350,25 +393,25 @@ export async function fetchNewTokens(limit = 10): Promise<NewTokenData[]> {
  */
 export async function fetchMarketStats(): Promise<MarketStats> {
   try {
-    // We'll calculate market stats from a small sample of tokens and the total market cap
-    const paginatedResponse = await fetchPaginatedTokens(1, 10)
-    const tokens = paginatedResponse.tokens
+    // Fetch volume by token data for more accurate stats
+    const volumeTokens = await fetchVolumeByToken()
     const totalMarketCapData = await fetchTotalMarketCap()
 
-    if (tokens.length > 0) {
+    if (volumeTokens.length > 0) {
       // Calculate totals
       const totalMarketCap = totalMarketCapData.total_marketcap_usd || 0
 
-      // Since we don't have volume data in the market cap query, we'll estimate it
-      const estimatedVolume = totalMarketCap * 0.05 // Estimate 5% daily volume
-      const volume24h = estimatedVolume
+      // Calculate total volume from the volume data
+      const volume24h = volumeTokens.reduce((sum, token) => sum + (token.vol_usd || 0), 0)
 
-      // Estimate transactions based on market cap
-      const estimatedTransactions = totalMarketCap / 10000 // Rough estimate
-      const transactions24h = estimatedTransactions
+      // Calculate total transactions from the volume data
+      const transactions24h = volumeTokens.reduce((sum, token) => sum + (token.txs || 0), 0)
 
-      // Estimate fee earnings (e.g., 0.3% of volume)
+      // Calculate fee earnings (e.g., 0.3% of volume)
       const feeEarnings24h = volume24h * 0.003
+
+      // Count total number of tokens
+      const coinLaunches = volumeTokens.length
 
       return {
         totalMarketCap,
@@ -376,7 +419,7 @@ export async function fetchMarketStats(): Promise<MarketStats> {
         transactions24h,
         feeEarnings24h,
         lifetimeVolume: volume24h * 30, // Estimate lifetime as 30 days of volume
-        coinLaunches: paginatedResponse.totalTokens,
+        coinLaunches,
       }
     }
 
@@ -413,6 +456,25 @@ export async function fetchTokenDetails(symbol: string): Promise<TokenData | nul
 
     if (!token) {
       return null
+    }
+
+    // Try to enrich with volume data if available
+    if (!volumeTokensCache || now - lastVolumeFetchTime > CACHE_DURATION) {
+      console.log("Fetching volume data for token details")
+      volumeTokensCache = await fetchVolumeByToken()
+      lastVolumeFetchTime = now
+    }
+
+    // Find matching volume data
+    const volumeData = volumeTokensCache.find((vt) => vt.token === token.token || vt.symbol === token.symbol)
+
+    if (volumeData) {
+      return {
+        ...token,
+        vol_usd: volumeData.vol_usd || 0,
+        txs: volumeData.txs || 0,
+        volume24h: volumeData.vol_usd || 0,
+      }
     }
 
     return token

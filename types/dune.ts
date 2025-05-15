@@ -23,6 +23,15 @@ export interface DuneQueryResult {
   }
 }
 
+// Volume by token data structure based on query 5119173
+export interface VolumeByTokenData {
+  token: string // Contract address
+  symbol: string // Token symbol
+  vol_usd: number // Volume in USD
+  txs: number // Number of transactions
+  created_time: string // Creation timestamp
+}
+
 // Token data structure based on your volume by token query
 export interface TokenData {
   token: string // Contract address
@@ -42,6 +51,8 @@ export interface TokenData {
   sells?: number
   description?: string
   volume24h?: number
+  name?: string
+  num_holders?: number
 }
 
 // Paginated token response
