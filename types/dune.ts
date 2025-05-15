@@ -35,10 +35,12 @@ export interface VolumeByTokenData {
 // Token data structure based on your volume by token query
 export interface TokenData {
   token: string // Contract address
+  token_url?: string // Token URL
   symbol: string // Token symbol
   vol_usd: number // Volume in USD
   txs: number // Number of transactions
   created_time: string // Creation timestamp
+  first_trade_time?: string // First trade timestamp
 
   // Additional fields we'll calculate or add
   price?: number
@@ -53,6 +55,7 @@ export interface TokenData {
   volume24h?: number
   name?: string
   num_holders?: number
+  market_cap_usd?: number
 }
 
 // Paginated token response

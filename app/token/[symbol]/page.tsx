@@ -243,6 +243,12 @@ export default function TokenPage({ params }: { params: { symbol: string } }) {
                   <span className="text-sm opacity-80">Created</span>
                   <span className="text-sm">{createdTime}</span>
                 </div>
+                {tokenData && tokenData.first_trade_time && (
+                  <div className="flex justify-between">
+                    <span className="text-sm opacity-80">First Trade</span>
+                    <span className="text-sm">{new Date(tokenData.first_trade_time).toLocaleDateString()}</span>
+                  </div>
+                )}
                 {dexscreenerData?.dexId && (
                   <div className="flex justify-between">
                     <span className="text-sm opacity-80">DEX</span>
