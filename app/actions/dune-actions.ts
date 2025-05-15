@@ -717,7 +717,7 @@ export async function fetchPaginatedTokens(
     // Sort the tokens based on the requested sort field and direction
     const sortedTokens = [...allTokens].sort((a, b) => {
       const aValue = a[sortField as keyof typeof a] || 0
-      const bValue = b[sortField as keyof typeof b] || 0
+      const bValue = b[sortField as keyof typeof a] || 0
 
       return sortDirection === "asc" ? (aValue as number) - (bValue as number) : (bValue as number) - (aValue as number)
     })
