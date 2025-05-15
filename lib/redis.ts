@@ -17,10 +17,18 @@ export const CACHE_KEYS = {
 // Cache duration in milliseconds (4 hours)
 export const CACHE_DURATION = 4 * 60 * 60 * 1000
 
+// Check if KV is available
+const isKvAvailable = typeof kv !== "undefined" && kv !== null
+
 /**
- * Get data from Redis cache
+ * Get data from Redis cache with fallback
  */
 export async function getFromCache<T>(key: string): Promise<T | null> {
+  if (!isKvAvailable) {
+    console.warn("KV is not available, using fallback")
+    return null
+  }
+
   try {
     return await kv.get(key)
   } catch (error) {
@@ -30,9 +38,14 @@ export async function getFromCache<T>(key: string): Promise<T | null> {
 }
 
 /**
- * Set data in Redis cache
+ * Set data in Redis cache with fallback
  */
 export async function setInCache(key: string, data: any, expirationMs?: number): Promise<void> {
+  if (!isKvAvailable) {
+    console.warn("KV is not available, skipping cache set")
+    return
+  }
+
   try {
     if (expirationMs) {
       await kv.set(key, data, { ex: Math.floor(expirationMs / 1000) })
@@ -48,16 +61,26 @@ export async function setInCache(key: string, data: any, expirationMs?: number):
  * Get the last refresh time from cache
  */
 export async function getLastRefreshTime(): Promise<Date | null> {
-  const timestamp = await getFromCache<number>(CACHE_KEYS.LAST_REFRESH_TIME)
-  return timestamp ? new Date(timestamp) : null
+  try {
+    const timestamp = await getFromCache<number>(CACHE_KEYS.LAST_REFRESH_TIME)
+    return timestamp ? new Date(timestamp) : null
+  } catch (error) {
+    console.error("Error getting last refresh time:", error)
+    return null
+  }
 }
 
 /**
  * Get the next scheduled refresh time from cache
  */
 export async function getNextRefreshTime(): Promise<Date | null> {
-  const timestamp = await getFromCache<number>(CACHE_KEYS.NEXT_REFRESH_TIME)
-  return timestamp ? new Date(timestamp) : null
+  try {
+    const timestamp = await getFromCache<number>(CACHE_KEYS.NEXT_REFRESH_TIME)
+    return timestamp ? new Date(timestamp) : null
+  } catch (error) {
+    console.error("Error getting next refresh time:", error)
+    return null
+  }
 }
 
 /**
@@ -68,18 +91,28 @@ export async function getTimeUntilNextRefresh(): Promise<{
   lastRefreshTime: Date | null
   nextRefreshTime: Date | null
 }> {
-  const lastRefreshTime = await getLastRefreshTime()
-  const nextRefreshTime = await getNextRefreshTime()
+  try {
+    const lastRefreshTime = await getLastRefreshTime()
+    const nextRefreshTime = await getNextRefreshTime()
 
-  let timeRemaining = 0
-  if (nextRefreshTime) {
-    timeRemaining = Math.max(0, nextRefreshTime.getTime() - Date.now())
-  }
+    let timeRemaining = 0
+    if (nextRefreshTime) {
+      timeRemaining = Math.max(0, nextRefreshTime.getTime() - Date.now())
+    }
 
-  return {
-    timeRemaining,
-    lastRefreshTime,
-    nextRefreshTime,
+    return {
+      timeRemaining,
+      lastRefreshTime,
+      nextRefreshTime,
+    }
+  } catch (error) {
+    console.error("Error calculating time until next refresh:", error)
+    // Return default values in case of error
+    return {
+      timeRemaining: 0,
+      lastRefreshTime: null,
+      nextRefreshTime: null,
+    }
   }
 }
 
@@ -88,6 +121,11 @@ export async function getTimeUntilNextRefresh(): Promise<{
  * Returns true if lock was acquired, false otherwise
  */
 export async function acquireRefreshLock(): Promise<boolean> {
+  if (!isKvAvailable) {
+    console.warn("KV is not available, skipping lock acquisition")
+    return true
+  }
+
   try {
     // Try to set the lock with NX option (only set if key doesn't exist)
     const result = await kv.set(
@@ -108,6 +146,11 @@ export async function acquireRefreshLock(): Promise<boolean> {
  * Release the refresh lock
  */
 export async function releaseRefreshLock(): Promise<void> {
+  if (!isKvAvailable) {
+    console.warn("KV is not available, skipping lock release")
+    return
+  }
+
   try {
     await kv.del(CACHE_KEYS.REFRESH_IN_PROGRESS)
   } catch (error) {

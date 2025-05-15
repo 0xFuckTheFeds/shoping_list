@@ -40,16 +40,25 @@ export function MarketCapPie({ data }: MarketCapPieProps) {
     }
   }, [data])
 
+  // Add defensive programming to handle potential null or undefined values
+
+  // Update the createChart function to handle potential null or undefined values
   const createChart = () => {
     if (chartInstance.current) {
       chartInstance.current.destroy()
     }
 
-    const ctx = chartRef.current!.getContext("2d")
-    if (!ctx) return
+    const ctx = chartRef.current?.getContext("2d")
+    if (!ctx || !data || data.length === 0) return
 
-    // Take top 10 tokens by market cap
-    const topTokens = [...data].sort((a, b) => b.market_cap_usd - a.market_cap_usd).slice(0, 10)
+    // Take top 10 tokens by market cap with null checks
+    const topTokens = [...data]
+      .filter((token) => token && token.market_cap_usd !== undefined)
+      .sort((a, b) => (b.market_cap_usd || 0) - (a.market_cap_usd || 0))
+      .slice(0, 10)
+
+    // If no tokens with market cap, return
+    if (topTokens.length === 0) return
 
     // Generate colors for each token
     const colors = [
@@ -65,13 +74,13 @@ export function MarketCapPie({ data }: MarketCapPieProps) {
       "#cccccc", // gray
     ]
 
-    // Prepare data for the chart
+    // Prepare data for the chart with null checks
     const chartData = {
-      labels: topTokens.map((item) => item.symbol),
+      labels: topTokens.map((item) => item.symbol || "Unknown"),
       datasets: [
         {
-          data: topTokens.map((item) => item.market_cap_usd),
-          backgroundColor: colors,
+          data: topTokens.map((item) => item.market_cap_usd || 0),
+          backgroundColor: colors.slice(0, topTokens.length),
           borderColor: "#222222",
           borderWidth: 2,
         },
@@ -119,7 +128,7 @@ export function MarketCapPie({ data }: MarketCapPieProps) {
         <div className="h-80">
           <canvas ref={chartRef} />
         </div>
-        <DuneQueryLink queryId={5129959} className="mt-2" />
+        <DuneQueryLink queryId={5140151} className="mt-2" />
       </DashcoinCardContent>
     </DashcoinCard>
   )

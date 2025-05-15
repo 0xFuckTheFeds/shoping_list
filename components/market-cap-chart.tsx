@@ -22,24 +22,31 @@ export function MarketCapChart({ data }: MarketCapChartProps) {
   const chartRef = useRef<HTMLCanvasElement>(null)
   const chartInstance = useRef<any>(null)
 
+  // Add defensive programming to handle potential null or undefined values
+
+  // Update the createChart function to handle potential null or undefined values
   const createChart = () => {
     if (chartInstance.current) {
       chartInstance.current.destroy()
     }
 
-    const ctx = chartRef.current!.getContext("2d")
-    if (!ctx) return
+    const ctx = chartRef.current?.getContext("2d")
+    if (!ctx || !data || data.length === 0) return
 
     // Sort data by date to ensure chronological order (oldest to newest)
-    const sortedData = [...data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    const sortedData = [...data].sort((a, b) => {
+      const dateA = a.date ? new Date(a.date).getTime() : 0
+      const dateB = b.date ? new Date(b.date).getTime() : 0
+      return dateA - dateB
+    })
 
-    // Prepare data for the chart
+    // Prepare data for the chart with null checks
     const chartData = {
-      labels: sortedData.map((item) => new Date(item.date).toLocaleDateString()),
+      labels: sortedData.map((item) => (item.date ? new Date(item.date).toLocaleDateString() : "Unknown")),
       datasets: [
         {
           label: "Market Cap (USD)",
-          data: sortedData.map((item) => item.marketcap),
+          data: sortedData.map((item) => item.marketcap || 0),
           borderColor: "#ffd700",
           backgroundColor: "rgba(255, 215, 0, 0.1)",
           borderWidth: 2,
@@ -48,7 +55,7 @@ export function MarketCapChart({ data }: MarketCapChartProps) {
         },
         {
           label: "Holders",
-          data: sortedData.map((item) => item.num_holders),
+          data: sortedData.map((item) => item.num_holders || 0),
           borderColor: "#66cc33",
           backgroundColor: "rgba(102, 204, 51, 0.1)",
           borderWidth: 2,

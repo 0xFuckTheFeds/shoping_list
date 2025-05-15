@@ -185,7 +185,7 @@ export default function TokenPage({ params }: { params: { symbol: string } }) {
           </div>
           <div className="flex gap-2">
             <a
-              href={dexscreenerData?.url || `https://dexscreener.com/solana/${tokenAddress}`}
+              href={dexscreenerData?.url || `https://axiom.trade/t/${tokenAddress}/dashc`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-dashYellow hover:text-dashYellow-dark font-medium dashcoin-text flex items-center"

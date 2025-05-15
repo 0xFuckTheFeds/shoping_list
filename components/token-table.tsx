@@ -216,7 +216,7 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
                       <td className="py-3 px-4">
                         <div className="flex gap-2">
                           <a
-                            href={tokenAddress ? `https://axiom.trade/meme/${tokenAddress}/@dashc` : "#"}
+                            href={tokenAddress ? `https://axiom.trade/t/${tokenAddress}/dashc` : "#"}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="px-3 py-1.5 bg-dashYellow text-dashBlack font-medium rounded-md hover:bg-dashYellow-dark transition-colors text-sm flex items-center justify-center min-w-[80px] border border-dashBlack"
@@ -250,7 +250,7 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
 
       {/* Dune Query Link */}
       <div className="flex justify-end mt-2">
-        <DuneQueryLink queryId={5129959} />
+        <DuneQueryLink queryId={5140151} />
       </div>
 
       {/* Pagination */}
