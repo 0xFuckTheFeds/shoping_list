@@ -57,15 +57,15 @@ export default async function Home() {
     <div className="min-h-screen">
       <header className="container mx-auto py-6 px-4">
         <div className="flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <DashcoinLogo size={48} />
+          <div className="flex items-center gap-4">
+            <DashcoinLogo size={56} />
             <a
               href={dashcoinTradeLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-dashYellow hover:text-dashYellow-dark font-medium dashcoin-text flex items-center"
+              className="text-dashYellow hover:text-dashYellow-dark font-medium dashcoin-text flex items-center text-lg"
             >
-              TRADE <ExternalLink className="h-3 w-3 ml-1" />
+              SUPPORT THE PAGE <ExternalLink className="h-4 w-4 ml-1" />
             </a>
           </div>
           <div>

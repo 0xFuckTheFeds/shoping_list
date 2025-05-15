@@ -225,7 +225,7 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
                         </div>
                       </td>
                       <td className="py-3 px-4">{getTokenProperty(token, "name")}</td>
-                      <td className="py-3 px-4">${formatCurrency(getTokenProperty(token, "marketCap", 0))}</td>
+                      <td className="py-3 px-4">{formatCurrency(getTokenProperty(token, "marketCap", 0))}</td>
                       <td className="py-3 px-4">{getTokenProperty(token, "num_holders", 0).toLocaleString()}</td>
                       <td className="py-3 px-4">
                         {token && token.created_time ? new Date(token.created_time).toLocaleDateString() : "N/A"}
