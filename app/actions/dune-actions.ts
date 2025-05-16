@@ -23,8 +23,8 @@ import {
 } from "@/lib/redis"
 
 // Check if we're in a preview environment or if DUNE_API_KEY is not set
-const IS_PREVIEW =
-  process.env.VERCEL_ENV === "preview" || process.env.ENABLE_DUNE_API === "false" || !process.env.DUNE_API_KEY
+const IS_PREVIEW = true;
+  // process.env.VERCEL_ENV === "preview" || process.env.ENABLE_DUNE_API === "false" || !process.env.DUNE_API_KEY
 
 // Mock data for preview environments
 const MOCK_DATA = {
@@ -1100,6 +1100,7 @@ export async function getTimeUntilNextDuneRefresh(): Promise<{ timeRemaining: nu
 // Force refresh all Dune data
 export async function forceDuneDataRefresh(): Promise<boolean> {
   try {
+    console.log("Forcing Dune data refresh...", IS_PREVIEW);
     if (IS_PREVIEW) {
       return true
     }
