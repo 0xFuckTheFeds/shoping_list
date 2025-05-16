@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { forceDuneDataRefresh } from "@/app/actions/dune-actions"
 
-// time fixed here
 export function AutoRefreshComponent({ refreshInterval = 4 * 60 * 60 * 1000 }) {
 
   const [isRefreshing, setIsRefreshing] = useState(false)
