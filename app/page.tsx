@@ -28,6 +28,8 @@ import { CopyAddress } from "@/components/copy-address"
 import { DuneQueryLink } from "@/components/dune-query-link"
 import { AutoRefreshComponent } from "@/components/auto-refresh-component"
 
+
+
 // Define wrapper components to handle promises with error handling
 const MarketCapChartWrapper = async ({ marketCapTimeDataPromise }: { marketCapTimeDataPromise: Promise<any> }) => {
   try {
