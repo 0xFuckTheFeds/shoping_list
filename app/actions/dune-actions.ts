@@ -481,11 +481,11 @@ async function fetchDuneQueryResults(queryId: number, limit = 1000) {
   }
 
   try {
-    const response = await fetch(
+    const response = await fetch(`https://api.dune.com/api/v1/query/${queryId}/results?limit=${limit}`,
 
-      // `https://api.dune.com/api/v1/query/${queryId}/results?limit=${limit}`, -------------! previous api
+      //  -------------! previous api
       
-      `'https://api.dune.com/api/v1/materialized-views/dune.dashers.result_believe_token_summary_latest`,
+      // `'https://api.dune.com/api/v1/materialized-views/dune.dashers.result_believe_token_summary_latest`,
       {
         headers: {
           "X-Dune-API-Key": DUNE_API_KEY,
@@ -672,7 +672,7 @@ async function fetchAllTokensFromDune(): Promise<TokenData[]> {
       console.error("Error getting refresh time info:", error);
     }
 
-    if ( Date.now() - lastRefreshTime.getTime() > 1 * 60 * 60 * 1000) {
+    if ( (Date.now() - lastRefreshTime.getTime()) > 1 * 60 * 60 * 1000) {
         const cachedData = await getFromCache<TokenData[]>(CACHE_KEYS.ALL_TOKENS)
           if (cachedData && cachedData.length > 0) {
           return cachedData
@@ -1054,7 +1054,7 @@ export async function fetchMarketStats(): Promise<MarketStats> {
       console.error("Error getting refresh time info:", error);
     }
 
-    if ( Date.now() - lastRefreshTime.getTime() > 1 * 60 * 60 * 1000) {
+    if ( (Date.now() - lastRefreshTime.getTime()) > 1 * 60 * 60 * 1000) {
       const cachedData = await getFromCache<MarketStats>(CACHE_KEYS.MARKET_STATS);
       if (cachedData && cachedData.totalMarketCap !== undefined) {
         return cachedData;

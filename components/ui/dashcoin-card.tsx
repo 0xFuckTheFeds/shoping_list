@@ -9,7 +9,7 @@ const DashcoinCard = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLD
 DashcoinCard.displayName = "DashcoinCard"
 
 const DashcoinCardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => <div ref={ref} className={cn("flex flex-col space-y-1.5", className)} {...props} />,
+  ({ className, ...props }, ref) => <div ref={ref} className={cn("flex space-y-1.5", className)} {...props} />,
 )
 DashcoinCardHeader.displayName = "DashcoinCardHeader"
 

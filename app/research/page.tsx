@@ -1,153 +1,26 @@
-// app/research/page.tsx
+"use client";
+
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/navbar";
 import { DashcoinCard, DashcoinCardContent, DashcoinCardHeader, DashcoinCardTitle } from "@/components/ui/dashcoin-card";
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
-import { Twitter, Search, Calendar, User, Clock } from "lucide-react";
+import { Twitter, Search, Calendar, User, Clock, ChevronLeft, ChevronRight, Hexagon, BookOpen, ArrowRight } from "lucide-react";
 import { DashcoinLogo } from "@/components/dashcoin-logo";
-import { useState } from "react";
+import { researchPosts } from "@/data/research-data";
 
-// Interface for research post
-interface ResearchPost {
-  id: string;
-  author: string;
-  authorImage: string;
-  title: string;
-  content: string;
-  publishDate: string;
-  imageUrl?: string;
-  coinName: string; // Added coin name
-  description: string; // Added short description
-}
-
-// Mock data for research posts with added fields
-const researchPosts: ResearchPost[] = [
-  {
-    id: "1",
-    author: "Crypto Frog",
-    authorImage: "/images/frog-soldier.png",
-    title: "The Rise of Dashcoin: A Comprehensive Analysis",
-    coinName: "DASHC",
-    description: "An in-depth analysis of Dashcoin's market position and future potential",
-    content: `
-      <p>Dashcoin has been making waves in the cryptocurrency market since its inception. In this comprehensive analysis, we'll explore the unique value proposition of Dashcoin and why it continues to gain traction among investors and traders alike.</p>
-      
-      <h3>Key Metrics</h3>
-      <p>Looking at the current market metrics, Dashcoin has shown remarkable resilience even during market downturns. With a growing market cap and increasing liquidity, it has positioned itself as a serious contender in the meme coin space.</p>
-      
-      <h3>Technical Analysis</h3>
-      <p>From a technical perspective, Dashcoin's architecture provides several advantages over traditional cryptocurrencies. Its innovative consensus mechanism allows for faster transaction speeds while maintaining security and decentralization.</p>
-      
-      <h3>Market Outlook</h3>
-      <p>As we look ahead, several factors suggest Dashcoin may continue its upward trajectory. Increasing institutional interest, growing retail adoption, and the team's commitment to ongoing development all point to a bright future for DASHC holders.</p>
-      
-      <img src="/api/placeholder/800/400" alt="Dashcoin price chart" />
-      
-      <p>The chart above shows Dashcoin's price performance over the last 3 months, demonstrating consistent growth despite market volatility.</p>
-    `,
-    publishDate: "May 10, 2025",
-    imageUrl: "/images/research-dashcoin.jpg"
-  },
-  {
-    id: "2",
-    author: "Believe Analysis",
-    authorImage: "/images/analyst-profile.jpg",
-    title: "Comparative Analysis: Dashcoin vs Other Meme Tokens",
-    coinName: "DASHC/DOGE/SHIB",
-    description: "A comparative study of leading meme coins and their market performance",
-    content: `
-      <p>In this detailed comparison, we examine how Dashcoin stacks up against other prominent meme tokens in the cryptocurrency ecosystem. Our analysis covers market performance, community engagement, and long-term viability factors.</p>
-      
-      <h3>Market Performance</h3>
-      <p>When comparing year-to-date returns, Dashcoin has outperformed many of its peers, showing less volatility while maintaining competitive growth rates. This suggests a more mature holder base and potentially more sustainable tokenomics.</p>
-      
-      <h3>Community Strength</h3>
-      <p>A key differentiator for Dashcoin has been its vibrant and engaged community. With active social media channels and frequent community events, DASHC has cultivated a loyal following that contributes to its market resilience.</p>
-      
-      <img src="/api/placeholder/800/400" alt="Community engagement comparison" />
-      
-      <h3>Future Potential</h3>
-      <p>Based on development roadmaps and strategic partnerships, Dashcoin appears positioned for continued growth. While other meme tokens often lack clear utility, DASHC's team has outlined several use cases that could drive adoption beyond speculative interest.</p>
-      
-      <p>For more information on other meme coins, visit <a href="https://cryptoanalysis.com/memecoins" target="_blank" rel="noopener noreferrer">Crypto Analysis</a>.</p>
-    `,
-    publishDate: "May 5, 2025",
-    imageUrl: "/images/comparative-analysis.jpg"
-  },
-  {
-    id: "3",
-    author: "Crypto Frog",
-    authorImage: "/images/frog-soldier.png",
-    title: "Liquidity Analysis: Understanding Dashcoin's Market Depth",
-    coinName: "DASHC",
-    description: "Deep dive into liquidity metrics and trading dynamics",
-    content: `
-      <p>Liquidity is a crucial factor in assessing a cryptocurrency's market health. In this research piece, we delve into Dashcoin's liquidity metrics and what they tell us about the token's trading dynamics.</p>
-      
-      <h3>Liquidity Providers</h3>
-      <p>One of Dashcoin's strengths has been its ability to attract and retain significant liquidity providers. This has resulted in lower slippage for traders and a more stable price discovery process compared to tokens with similar market capitalization.</p>
-      
-      <h3>Exchange Distribution</h3>
-      <p>DASHC has achieved impressive exchange distribution in a relatively short time, being listed on multiple centralized and decentralized exchanges. This wide availability reduces single points of failure and makes the token accessible to a broader audience.</p>
-      
-      <img src="/api/placeholder/800/400" alt="Exchange distribution chart" />
-      
-      <h3>Trading Volumes</h3>
-      <p>Analyzing the 24-hour to 7-day volume ratios shows healthy trading patterns without concerning spikes or drop-offs that might indicate market manipulation. This suggests organic interest and trading activity around the token.</p>
-    `,
-    publishDate: "April 29, 2025"
-  },
-  {
-    id: "4",
-    author: "Blockchain Insights",
-    authorImage: "/images/blockchain-insights.jpg",
-    title: "Emerging NFT Use Cases in the Dashcoin Ecosystem",
-    coinName: "DASHC/NFT",
-    description: "Exploring innovative NFT implementations within Dashcoin",
-    content: `
-      <p>Non-fungible tokens (NFTs) have become an integral part of many cryptocurrency ecosystems. This research explores how Dashcoin is integrating NFT functionality and the unique use cases being developed.</p>
-      
-      <h3>Dashcoin NFT Platform</h3>
-      <p>The recently launched Dashcoin NFT platform provides a streamlined experience for creators and collectors. With lower fees than many competitors and seamless integration with the DASHC token, it offers a compelling alternative in the NFT space.</p>
-      
-      <img src="/api/placeholder/800/400" alt="Dashcoin NFT Platform UI" />
-      
-      <h3>Community Governance NFTs</h3>
-      <p>One of the most innovative applications has been the introduction of governance NFTs, which grant holders voting rights in community decisions. This approach has introduced a new paradigm for decentralized governance that balances influence with commitment to the ecosystem.</p>
-      
-      <h3>Future Developments</h3>
-      <p>Looking ahead, the Dashcoin team has outlined plans for NFT staking, fractional ownership, and cross-chain NFT functionality. These developments could position Dashcoin as a leader in the evolving NFT landscape.</p>
-    `,
-    publishDate: "April 22, 2025",
-    imageUrl: "/images/nft-ecosystem.jpg"
-  },
-  {
-    id: "5",
-    author: "DeFi Explorer",
-    authorImage: "/images/defi-explorer.jpg",
-    title: "Dashcoin's Role in Decentralized Finance",
-    coinName: "DASHC/DeFi",
-    description: "Analysis of Dashcoin's integration with DeFi protocols",
-    content: `
-      <p>Decentralized Finance (DeFi) continues to revolutionize financial services. This report examines Dashcoin's growing presence in the DeFi space and its potential impact on token value and utility.</p>
-      
-      <h3>Lending and Borrowing</h3>
-      <p>Several major DeFi platforms have recently added support for DASHC tokens, allowing holders to earn interest by supplying liquidity or to use their tokens as collateral for loans. This integration has opened new utility avenues for DASHC holders.</p>
-      
-      <h3>Yield Farming Opportunities</h3>
-      <p>The introduction of DASHC liquidity pools has created attractive yield farming opportunities. Current APY rates on various platforms range from 15% to 40%, depending on the specific pool and platform.</p>
-      
-      <img src="/api/placeholder/800/400" alt="DeFi yield comparison chart" />
-      
-      <h3>Risk Assessment</h3>
-      <p>While the DeFi integration offers new opportunities, it's important to consider the associated risks, including smart contract vulnerabilities, impermanent loss, and market volatility. We provide a balanced analysis of these factors to help investors make informed decisions.</p>
-      
-      <p>For more information on DeFi security best practices, visit <a href="https://defiexplorer.io/security" target="_blank" rel="noopener noreferrer">DeFi Explorer</a>.</p>
-    `,
-    publishDate: "April 15, 2025",
-    imageUrl: "/images/defi-integration.jpg"
+// Add global styles for custom scrollbar
+const globalStyles = `
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
-];
+  
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+`;
 
 export default function ResearchPage() {
   // Dashcoin trade link (used for navbar)
@@ -155,59 +28,145 @@ export default function ResearchPage() {
   // Dashcoin X (Twitter) link
   const dashcoinXLink = "https://x.com/dune_dashcoin";
   
-  // Client-side state (will only work with proper Client Components setup)
-  // For now, using "use client" at the top of your file or moving this to a client component
-  // const [searchQuery, setSearchQuery] = useState("");
-  // const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  // Client-side state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedPostId, setSelectedPostId] = useState("1");
+  const [currentPage, setCurrentPage] = useState(1);
+  const postsPerPage = 1; // Show one post at a time for pagination
   
-  // For SSR, we'll just use a default selected post
-  const selectedPostId = "1";
-  
-  // Function to filter posts based on search query (to be used client-side)
-  const filteredPosts = researchPosts; // This would be: researchPosts.filter(post => post.coinName.toLowerCase().includes(searchQuery.toLowerCase()));
+  // Function to filter posts based on search query
+  const filteredPosts = researchPosts.filter((post: any) => 
+    post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    post.coinName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    post.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
   
   // Get the selected post
-  const selectedPost = researchPosts.find(post => post.id === selectedPostId) || researchPosts[0];
+  const selectedPost = researchPosts.find((post: any) => post.id === selectedPostId) || researchPosts[0];
+
+  // Handle pagination
+  const totalPages = Math.ceil(selectedPost.content.length / 2000); // Estimate pages based on content length
+  
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+      // Scroll to top of content area
+      document.getElementById('content-top')?.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+      document.getElementById('content-top')?.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  // Select a post from sidebar
+  const handleSelectPost = (id: string) => {
+    setSelectedPostId(id);
+    setCurrentPage(1); // Reset to first page when selecting a new post
+  };
+  
+  // Effect to set the height of containers on initial load and window resize
+  useEffect(() => {
+    const setContainerHeights = () => {
+      const viewportHeight = window.innerHeight;
+      const navbarHeight = document.querySelector('nav')?.offsetHeight || 0;
+      const headerHeight = document.querySelector('.dashcoin-title')?.parentElement?.offsetHeight || 0;
+      const footerHeight = document.querySelector('footer')?.offsetHeight || 0;
+      
+      // Calculate available height for the content area
+      const availableHeight = viewportHeight - navbarHeight - headerHeight - footerHeight - 48; // 48px for padding
+      
+      // Set the height for the content containers
+      document.querySelectorAll('.content-container').forEach((el: any) => {
+        el.style.height = `${availableHeight}px`;
+      });
+    };
+    
+    setContainerHeights();
+    window.addEventListener('resize', setContainerHeights);
+    
+    return () => {
+      window.removeEventListener('resize', setContainerHeights);
+    };
+  }, []);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-dashGreen-darkest relative overflow-x-hidden">
+      {/* Add global styles */}
+      <style jsx global>{globalStyles}</style>
+      
+      {/* Background hexagon decorations */}
+      <div className="absolute top-20 left-10 opacity-5 transform rotate-45">
+        <Hexagon size={300} />
+      </div>
+      <div className="absolute bottom-40 right-0 opacity-5 transform -rotate-15">
+        <Hexagon size={400} />
+      </div>
+      
       <Navbar dashcoinTradeLink={dashcoinTradeLink} />
 
-      <main className="container mx-auto px-4 py-6">
-        <div className="mb-8">
-          <h1 className="dashcoin-title text-4xl md:text-5xl text-dashYellow mb-4">DASHCOIN RESEARCH</h1>
-          <p className="text-xl max-w-3xl">In-depth analysis and insights into Dashcoin and the broader cryptocurrency market</p>
+      <main className="container mx-auto px-4 py-6 relative z-10">
+        {/* Enhanced Header with Decoration */}
+        <div className="mb-8 w-full relative">
+          <div className="absolute -top-8 -left-4 w-20 h-20 bg-dashYellow opacity-10 rounded-full blur-xl"></div>
+          <div className="absolute top-10 right-20 w-32 h-32 bg-dashGreen-light opacity-5 rounded-full blur-xl"></div>
+          
+          <h1 className="dashcoin-title text-4xl md:text-6xl text-dashYellow mb-4 relative inline-block">
+            DASHCOIN RESEARCH
+            <span className="absolute -bottom-2 left-0 w-20 h-1 bg-dashYellow"></span>
+          </h1>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex flex-col justify-center items-start lg:flex-row gap-8">
           {/* Sidebar - Research Directory */}
-          <div className="lg:w-1/4">
-            <DashcoinCard className="sticky top-24">
-              <DashcoinCardHeader>
-                <DashcoinCardTitle>Research Directory</DashcoinCardTitle>
-                <div className="relative mt-4">
+          <div className="lg:w-1/4 w-full">
+            <DashcoinCard className="content-container overflow-hidden transition-all duration-300 hover:shadow-[0_0_15px_rgba(234,179,8,0.05)]">
+              <DashcoinCardHeader className="sticky top-0 bg-dashGreen-darkest z-10">
+                <DashcoinCardTitle className="flex items-center ">
+                  <BookOpen className="h-5 w-5 mr-2 text-dashYellow" />
+                  Research Directory
+                  <div className="ml-2 h-3 w-3 rounded-full bg-dashYellow animate-pulse"></div>
+                </DashcoinCardTitle>
+                <div className="relative mt-4 group">
                   <input 
                     type="text" 
                     placeholder="Search coins..." 
-                    className="w-full px-4 py-2 rounded-md bg-dashGreen-dark border border-dashGreen-light focus:border-dashYellow focus:outline-none"
-                    // onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full px-4 py-2 rounded-md bg-dashGreen-dark border border-dashGreen-light focus:border-dashYellow focus:outline-none transition-all duration-300 group-hover:border-dashYellow-light"
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    value={searchQuery}
                   />
                   <Search className="absolute right-3 top-2.5 h-5 w-5 text-dashYellow-light" />
                 </div>
               </DashcoinCardHeader>
-              <DashcoinCardContent>
-                <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
-                  {filteredPosts.map((post) => (
+              <DashcoinCardContent className="h-full overflow-y-auto no-scrollbar">
+                <div className="space-y-4 pr-2">
+                  {filteredPosts.map((post: any) => (
                     <div 
                       key={post.id} 
-                      className={`p-3 rounded-md hover:bg-dashGreen-dark cursor-pointer border ${post.id === selectedPostId ? 'border-dashYellow bg-dashGreen-dark' : 'border-transparent hover:border-dashGreen-light'}`}
-                      // onClick={() => setSelectedPostId(post.id)}
+                      className={`p-3 rounded-md cursor-pointer border transition-all duration-300 transform hover:scale-[1.02] 
+                        ${post.id === selectedPostId 
+                          ? 'border-dashYellow bg-dashGreen-dark shadow-[0_0_10px_rgba(234,179,8,0.1)]' 
+                          : 'border-transparent hover:border-dashGreen-light hover:bg-dashGreen-dark/50'}`}
+                      onClick={() => handleSelectPost(post.id)}
                     >
-                      <h3 className="font-medium text-dashYellow-light">{post.coinName}</h3>
+                      <div className="flex justify-between items-start">
+                        <h3 className="font-medium text-dashYellow-light">{post.coinName}</h3>
+                        {post.id === selectedPostId && (
+                          <div className="h-2 w-2 rounded-full bg-dashYellow"></div>
+                        )}
+                      </div>
                       <p className="text-sm mt-1 line-clamp-2 opacity-80">{post.description}</p>
-                      <div className="flex items-center gap-2 mt-2 text-sm opacity-70">
-                        <Calendar className="h-3 w-3" />
-                        <span>{post.publishDate}</span>
+                      <div className="flex items-center justify-between mt-2">
+                        <div className="flex items-center gap-2 text-xs opacity-70">
+                          <Calendar className="h-3 w-3" />
+                          <span>{post.publishDate}</span>
+                        </div>
+                        {post.id === selectedPostId && (
+                          <ArrowRight className="h-3 w-3 text-dashYellow" />
+                        )}
                       </div>
                     </div>
                   ))}
@@ -217,49 +176,118 @@ export default function ResearchPage() {
           </div>
 
           {/* Main Content - Research Viewer */}
-          <div className="lg:w-3/4">
-            <DashcoinCard className="overflow-hidden">
-              {selectedPost.imageUrl && (
-                <div className="h-64 w-full relative">
-                  <div className="absolute inset-0 bg-dashGreen-dark flex items-center justify-center">
-                    <p className="text-dashYellow">Image: {selectedPost.title}</p>
-                  </div>
-                </div>
-              )}
-              <DashcoinCardHeader>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="h-10 w-10 rounded-full overflow-hidden relative bg-dashGreen-dark">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-xs text-dashYellow">{selectedPost.author[0]}</span>
+          <div className="lg:w-3/4 w-full" id="content-top">
+            <DashcoinCard className="content-container overflow-hidden transition-all duration-300 hover:shadow-[0_0_15px_rgba(234,179,8,0.05)] relative">
+              {/* Decorative elements */}
+              <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-r from-transparent via-dashYellow/30 to-transparent"></div>
+              <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-dashYellow/30 via-transparent to-dashYellow/30"></div>
+              
+              {/* Header section with metadata and image */}
+              <div className="flex flex-col">
+                <DashcoinCardHeader className="flex justify-between items-start border-b border-dashGreen-light pb-4">
+                  {/* Left side: Text content */}
+                  <div className="flex flex-col flex-grow mr-4">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="h-10 w-10 rounded-full overflow-hidden relative bg-dashGreen-dark border border-dashYellow/20 flex items-center justify-center shadow-lg">
+                        <span className="text-xl font-bold text-dashYellow">{selectedPost.author[0]}</span>
+                      </div>
+                      <div>
+                        <p className="font-medium">{selectedPost.author}</p>
+                        <div className="flex items-center gap-1 text-sm opacity-70">
+                          <Clock className="h-3 w-3" />
+                          <span>{selectedPost.publishDate}</span>
+                        </div>
+                      </div>
                     </div>
+                    <DashcoinCardTitle className="text-2xl md:text-3xl relative">
+                      {selectedPost.title}
+                      <span className="absolute -bottom-2 left-0 w-16 h-0.5 bg-dashYellow/50"></span>
+                    </DashcoinCardTitle>
+                    <p className="text-dashYellow-light mt-2 text-lg">
+                      {selectedPost.coinName}
+                    </p>
                   </div>
-                  <div>
-                    <p className="font-medium">{selectedPost.author}</p>
-                    <p className="text-sm opacity-70">{selectedPost.publishDate}</p>
-                  </div>
-                </div>
-                <DashcoinCardTitle className="text-2xl md:text-3xl">{selectedPost.title}</DashcoinCardTitle>
-              </DashcoinCardHeader>
-              <DashcoinCardContent>
-                <div 
-                  className="prose prose-invert max-w-none prose-headings:text-dashYellow prose-a:text-dashYellow-light prose-img:rounded-lg prose-img:my-8"
-                  dangerouslySetInnerHTML={{ __html: selectedPost.content }}
-                />
-              </DashcoinCardContent>
+                  
+                  {/* Right side: Image */}
+                  {selectedPost.imageUrl && (
+                    <div className="flex-shrink-0 w-32 h-32 overflow-hidden rounded-lg border border-dashYellow/20">
+                      <div className="relative w-full h-full bg-dashGreen-dark flex items-center justify-center hover:scale-105 transition-transform duration-500">
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-dashGreen-darkest opacity-50"></div>
+                        <p className="text-dashYellow relative z-10 font-bold dashcoin-text text-sm text-center">
+                          {selectedPost.coinName}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </DashcoinCardHeader>
+                
+                {/* Content section with scroll */}
+                <DashcoinCardContent className="h-full overflow-y-auto no-scrollbar">
+                  <div 
+                    className="prose prose-invert max-w-none prose-headings:text-dashYellow prose-a:text-dashYellow-light prose-img:rounded-lg prose-img:my-8 prose-img:shadow-lg"
+                    dangerouslySetInnerHTML={{ __html: paginateContent(selectedPost.content, currentPage, 2000) }}
+                  />
+                  
+                  {/* Pagination controls */}
+                  {totalPages > 1 && (
+                    <div className="flex justify-between items-center mt-8 border-t border-dashGreen-light pt-4">
+                      <Button 
+                        variant="outline" 
+                        className={`border-dashYellow text-dashYellow hover:bg-dashYellow hover:text-dashGreen-darkest transition-all duration-300 ${currentPage <= 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        onClick={handlePrevPage}
+                        disabled={currentPage <= 1}
+                      >
+                        <ChevronLeft className="mr-2 h-4 w-4" /> Previous
+                      </Button>
+                      
+                      <div className="flex items-center space-x-1">
+                        {Array.from({ length: totalPages }, (_, i) => (
+                          <button
+                            key={i}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+                              currentPage === i + 1
+                                ? 'bg-dashYellow text-dashGreen-darkest font-bold'
+                                : 'text-dashYellow-light hover:bg-dashGreen-dark'
+                            }`}
+                            onClick={() => {
+                              setCurrentPage(i + 1);
+                              document.getElementById('content-top')?.scrollIntoView({ behavior: 'smooth' });
+                            }}
+                          >
+                            {i + 1}
+                          </button>
+                        ))}
+                      </div>
+                      
+                      <Button 
+                        variant="outline"
+                        className={`border-dashYellow text-dashYellow hover:bg-dashYellow hover:text-dashGreen-darkest transition-all duration-300 ${currentPage >= totalPages ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        onClick={handleNextPage}
+                        disabled={currentPage >= totalPages}
+                      >
+                        Next <ChevronRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </DashcoinCardContent>
+              </div>
             </DashcoinCard>
           </div>
         </div>
       </main>
 
-      <footer className="container mx-auto py-8 px-4 mt-12 border-t border-dashGreen-light">
+      <footer className="container mx-auto py-6 px-4 border-t border-dashGreen-light">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <DashcoinLogo size={32} />
+          <div className="flex items-center space-x-2">
+            <DashcoinLogo size={32} />
+            <span className="text-dashYellow-light font-bold">DASHCOIN RESEARCH</span>
+          </div>
           <p className="text-sm opacity-80">© 2025 Dashcoin. All rights reserved.</p>
           <a
             href={dashcoinXLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 text-dashYellow hover:text-dashYellow-dark transition-colors px-4 py-2 border border-dashYellow rounded-md"
+            className="flex items-center gap-2 text-dashYellow hover:text-dashYellow-dark transition-colors px-4 py-2 border border-dashYellow rounded-md hover:bg-dashYellow/10 transition-all duration-300"
           >
             <Twitter className="h-5 w-5" />
             <span className="dashcoin-text">Follow on X</span>
@@ -268,4 +296,51 @@ export default function ResearchPage() {
       </footer>
     </div>
   );
+}
+
+function paginateContent(content: string, page: number, charsPerPage: number): string {
+  const totalChars = content.length;
+  const startChar = (page - 1) * charsPerPage;
+  const endChar = Math.min(startChar + charsPerPage, totalChars);
+  
+  let paginatedContent = content.substring(startChar, endChar);
+  
+  if (page > 1) {
+    const firstTagEnd = paginatedContent.indexOf('>');
+    if (firstTagEnd !== -1) {
+      const tagMatch = content.substring(startChar - 50, startChar).match(/<([a-z0-9]+)[^>]*$/i);
+      if (tagMatch) {
+        paginatedContent = `<${tagMatch[1]}>${paginatedContent}`;
+      }
+    }
+  }
+  
+  if (endChar < totalChars) {
+    const lastTagStart = paginatedContent.lastIndexOf('<');
+    if (lastTagStart !== -1 && paginatedContent.indexOf('>', lastTagStart) === -1) {
+      paginatedContent = paginatedContent.substring(0, lastTagStart);
+    }
+    
+    const openTags = [];
+    const regex = /<\/?([a-z0-9]+)[^>]*>/gi;
+    let match;
+    let content = paginatedContent;
+    
+    while ((match = regex.exec(content)) !== null) {
+      if (match[0].startsWith('</')) {
+        const tag = match[1].toLowerCase();
+        if (openTags.length > 0 && openTags[openTags.length - 1] === tag) {
+          openTags.pop();
+        }
+      } else if (!match[0].endsWith('/>')) {
+        openTags.push(match[1].toLowerCase());
+      }
+    }
+    
+    while (openTags.length > 0) {
+      paginatedContent += `</${openTags.pop()}>`;
+    }
+  }
+  
+  return paginatedContent;
 }
