@@ -26,7 +26,7 @@ import { Suspense } from "react"
 import TokenTable from "@/components/token-table"
 import { CopyAddress } from "@/components/copy-address"
 import { DuneQueryLink } from "@/components/dune-query-link"
-// import { AdminRefreshButton } from "@/components/admin-refresh-button"
+import { AutoRefreshComponent } from "@/components/auto-refresh-component"
 
 // Define wrapper components to handle promises with error handling
 const MarketCapChartWrapper = async ({ marketCapTimeDataPromise }: { marketCapTimeDataPromise: Promise<any> }) => {
@@ -229,7 +229,8 @@ export default async function Home() {
             </a>
           </div>
           <div className="flex items-center gap-2">
-            {/* <AdminRefreshButton /> */}
+            {/* Silent auto refresh component (no visible UI) */}
+            <AutoRefreshComponent />
             <ThemeToggle />
           </div>
         </div>
@@ -323,6 +324,7 @@ export default async function Home() {
           <p className="text-xl max-w-2xl mx-auto">Your Data Buddy for the Believe Coin Trenches</p>
         </div>
 
+        {/* Rest of the code stays the same... */}
         {/* Summary Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <DashcoinCard className="flex flex-col items-center justify-center py-8">
