@@ -26,7 +26,7 @@ import { Suspense } from "react"
 import TokenTable from "@/components/token-table"
 import { CopyAddress } from "@/components/copy-address"
 import { DuneQueryLink } from "@/components/dune-query-link"
-import { AdminRefreshButton } from "@/components/admin-refresh-button"
+// import { AdminRefreshButton } from "@/components/admin-refresh-button"
 
 // Define wrapper components to handle promises with error handling
 const MarketCapChartWrapper = async ({ marketCapTimeDataPromise }: { marketCapTimeDataPromise: Promise<any> }) => {
@@ -202,7 +202,10 @@ export default async function Home() {
     dashcPairAddress = pair.pairAddress || ""
 
     // If we have a timestamp for the data, use it
+    //@ts-ignore
     if (pair.updatedAt) {
+
+      //@ts-ignore
       lastUpdated = new Date(pair.updatedAt).toLocaleString(undefined, {
         dateStyle: "short",
         timeStyle: "medium",
@@ -226,7 +229,7 @@ export default async function Home() {
             </a>
           </div>
           <div className="flex items-center gap-2">
-            <AdminRefreshButton />
+            {/* <AdminRefreshButton /> */}
             <ThemeToggle />
           </div>
         </div>

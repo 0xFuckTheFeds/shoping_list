@@ -24,6 +24,12 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
   const [isLoading, setIsLoading] = useState(false)
   const [tokenData, setTokenData] = useState<PaginatedTokenResponse>(initialData)
   const [filteredTokens, setFilteredTokens] = useState<TokenData[]>(initialData.tokens || [])
+  const [isClient, setIsClient] = useState(false)
+
+  // Set isClient to true after component mounts
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   // Filter tokens based on search term
   useEffect(() => {
@@ -97,6 +103,23 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
   // Safe getter for token properties
   const getTokenProperty = (token: any, property: string, defaultValue: any = "N/A") => {
     return token && token[property] !== undefined && token[property] !== null ? token[property] : defaultValue
+  }
+
+  // Format date consistently
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return "N/A";
+    
+    // During SSR or before hydration, return a consistent placeholder
+    if (!isClient) return "Loading...";
+    
+    try {
+      // Format date consistently on client side only
+      const date = new Date(dateString);
+      // Use ISO format date or another consistent format
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    } catch (e) {
+      return "Invalid date";
+    }
   }
 
   return (
@@ -229,7 +252,7 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
                       <td className="py-3 px-4">{formatCurrency(getTokenProperty(token, "marketCap", 0))}</td>
                       <td className="py-3 px-4">{getTokenProperty(token, "num_holders", 0).toLocaleString()}</td>
                       <td className="py-3 px-4">
-                        {token && token.created_time ? new Date(token.created_time).toLocaleDateString() : "N/A"}
+                        {formatDate(token?.created_time)}
                       </td>
                     </tr>
                   )

@@ -173,30 +173,20 @@ const CACHE_TTL = 5 * 60 * 1000 // 5 minutes cache
 const apiCallTimes: number[] = []
 const MAX_CALLS_PER_MINUTE = 30 // Dexscreener limit is 60, but we'll be conservative
 
-/**
- * Check if we're within rate limits
- */
 function checkRateLimit(): boolean {
   const now = Date.now()
-  // Remove calls older than 1 minute
   const recentCalls = apiCallTimes.filter((time) => now - time < 60000)
   apiCallTimes.length = 0
   apiCallTimes.push(...recentCalls)
 
-  // Check if we're under the limit
   return apiCallTimes.length < MAX_CALLS_PER_MINUTE
 }
 
-/**
- * Wait until we're under rate limit
- */
 async function waitForRateLimit(): Promise<void> {
   if (checkRateLimit()) {
     return
   }
 
-  console.log("Rate limit reached, waiting...")
-  // Wait until we're under the limit
   const now = Date.now()
   const oldestCall = apiCallTimes[0]
   const timeToWait = 60000 - (now - oldestCall) + 1000 // Add 1 second buffer
@@ -224,7 +214,6 @@ async function fetchWithRetry(url: string, maxRetries = 3, initialDelay = 1000):
 
       // If we hit rate limit, wait and retry
       if (response.status === 429) {
-        console.log(`Rate limited by Dexscreener API, retrying in ${delay}ms...`)
         await new Promise((resolve) => setTimeout(resolve, delay))
         retries++
         delay *= 2 // Exponential backoff
@@ -252,7 +241,6 @@ export async function getTimeUntilNextDexscreenerRefresh(cacheKey: string): Prom
 }> {
   // In preview, simulate a refresh that happened 2 minutes ago
   if (IS_PREVIEW) {
-    console.log("Using mock Dexscreener refresh time data in preview environment")
     const mockLastRefreshTime = new Date(Date.now() - 2 * 60 * 1000) // 2 minutes ago
     const timeRemaining = 3 * 60 * 1000 // 3 minutes remaining (out of 5)
 
@@ -287,13 +275,11 @@ export async function getTimeUntilNextDexscreenerRefresh(cacheKey: string): Prom
 export const fetchDexscreenerTokenData = cache(
   async (tokenAddress: string): Promise<DexscreenerTokenResponse | null> => {
     if (!tokenAddress) {
-      console.log("No token address provided")
       return null
     }
 
     // Use mock data in preview environments
     if (IS_PREVIEW) {
-      console.log(`Using mock Dexscreener data for token ${tokenAddress} in preview environment`)
       // Return the mock data for this token if available, or a generic response
       return (
         MOCK_DEXSCREENER_DATA[tokenAddress] || {
@@ -351,12 +337,10 @@ export const fetchDexscreenerTokenData = cache(
     const cachedData = dexscreenerCache.get(cacheKey)
 
     if (cachedData && Date.now() - cachedData.timestamp < CACHE_TTL) {
-      console.log(`Using cached Dexscreener data for token ${tokenAddress}`)
       return cachedData.data
     }
 
     try {
-      console.log(`Fetching Dexscreener data for token ${tokenAddress}`)
       const response = await fetchWithRetry(`https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`)
 
       if (!response.ok) {
@@ -383,7 +367,6 @@ export const fetchDexscreenerTokenData = cache(
 export const fetchDexscreenerPairData = cache(async (pairAddress: string): Promise<DexscreenerTokenResponse | null> => {
   // Use mock data in preview environments
   if (IS_PREVIEW) {
-    console.log(`Using mock Dexscreener data for pair ${pairAddress} in preview environment`)
     // Return the mock data for this pair if available, or a generic response
     return (
       MOCK_DEXSCREENER_DATA[pairAddress] || {
@@ -441,12 +424,10 @@ export const fetchDexscreenerPairData = cache(async (pairAddress: string): Promi
   const cachedData = dexscreenerCache.get(cacheKey)
 
   if (cachedData && Date.now() - cachedData.timestamp < CACHE_TTL) {
-    console.log(`Using cached Dexscreener data for pair ${pairAddress}`)
     return cachedData.data
   }
 
   try {
-    console.log(`Fetching Dexscreener data for pair ${pairAddress}`)
     const response = await fetchWithRetry(`https://api.dexscreener.com/latest/dex/pairs/solana/${pairAddress}`)
 
     if (!response.ok) {
@@ -476,7 +457,6 @@ export async function batchFetchTokenData(
 
   // Use mock data in preview environments
   if (IS_PREVIEW) {
-    console.log(`Using mock Dexscreener data for batch fetch in preview environment`)
 
     for (const address of tokenAddresses) {
       // Get mock data for this token if available, or use generic mock data

@@ -18,9 +18,7 @@ export async function GET(request: NextRequest) {
     const clearCacheParam = searchParams.get("clearCache")
 
     if (clearCacheParam === "true") {
-      // Clear all cache before refreshing
       await clearCache()
-      console.log("Cache cleared before refresh")
     }
 
     const refreshed = await refreshDuneData()

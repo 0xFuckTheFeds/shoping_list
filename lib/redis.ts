@@ -169,14 +169,12 @@ export async function clearCache(key?: string): Promise<void> {
     if (key) {
       // Clear specific key
       await kv.del(key)
-      console.log(`Cleared cache for key: ${key}`)
     } else {
       // Clear all dashcoin cache keys
       const keys = Object.values(CACHE_KEYS)
       for (const key of keys) {
         await kv.del(key)
       }
-      console.log("Cleared all cache keys")
     }
   } catch (error) {
     console.error("Error clearing cache:", error)
