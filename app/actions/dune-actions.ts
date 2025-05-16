@@ -1,4 +1,4 @@
-"use server"
+"use server";
 
 import type {
   DuneExecutionResponse,
@@ -11,7 +11,7 @@ import type {
   TotalMarketCapData,
   PaginatedTokenResponse,
   VolumeByTokenData,
-} from "@/types/dune"
+} from "@/types/dune";
 import {
   CACHE_KEYS,
   getFromCache,
@@ -20,12 +20,13 @@ import {
   acquireRefreshLock,
   releaseRefreshLock,
   CACHE_DURATION,
-} from "@/lib/redis"
+} from "@/lib/redis";
 
 // Check if we're in a preview environment or if DUNE_API_KEY is not set
-const IS_PREVIEW = true;
-  // process.env.VERCEL_ENV === "preview" || process.env.ENABLE_DUNE_API === "false" || !process.env.DUNE_API_KEY
-
+const IS_PREVIEW =
+  process.env.VERCEL_ENV === "preview" ||
+  process.env.ENABLE_DUNE_API === "false" ||
+  !process.env.DUNE_API_KEY;
 // Mock data for preview environments
 const MOCK_DATA = {
   tokens: [
@@ -454,10 +455,10 @@ const MOCK_DATA = {
     lifetimeVolume: 750000000,
     coinLaunches: 10,
   },
-}
+};
 
 // This is your Dune API key from environment variables
-const DUNE_API_KEY = process.env.DUNE_API_KEY
+const DUNE_API_KEY = process.env.DUNE_API_KEY;
 
 /**
  * Fetch results directly from a Dune query using the results endpoint
@@ -465,116 +466,134 @@ const DUNE_API_KEY = process.env.DUNE_API_KEY
 async function fetchDuneQueryResults(queryId: number, limit = 1000) {
   if (IS_PREVIEW) {
     // Return mock data based on query ID
+    console.log(`Using mock data for query ${queryId} in preview environment`);
     if (queryId === 5140151) {
-      return { rows: MOCK_DATA.tokens }
+      return { rows: MOCK_DATA.tokens };
     } else if (queryId === 5119241) {
-      return { rows: MOCK_DATA.marketCapTimeData }
+      return { rows: MOCK_DATA.marketCapTimeData };
     }
-    return { rows: [] }
+    return { rows: [] };
   }
 
   if (!DUNE_API_KEY) {
-    console.error("DUNE_API_KEY is not set")
-    return { rows: [] }
+    console.error("DUNE_API_KEY is not set");
+    return { rows: [] };
   }
 
   try {
-    const response = await fetch(`https://api.dune.com/api/v1/query/${queryId}/results?limit=${limit}`, {
-      headers: {
-        "X-Dune-API-Key": DUNE_API_KEY,
-      },
-    })
+    const response = await fetch(
+      `https://api.dune.com/api/v1/query/${queryId}/results?limit=${limit}`,
+      {
+        headers: {
+          "X-Dune-API-Key": DUNE_API_KEY,
+        },
+      }
+    );
 
     if (!response.ok) {
-      console.error(`Failed to fetch query results: ${response.statusText}`)
-      return { rows: [] }
+      console.error(`Failed to fetch query results: ${response.statusText}`);
+      return { rows: [] };
     }
 
-    const data = await response.json()
-    return data.result || { rows: [] }
+    const data = await response.json();
+    return data.result || { rows: [] };
   } catch (error) {
-    console.error("Error fetching Dune query results:", error)
-    return { rows: [] }
+    console.error("Error fetching Dune query results:", error);
+    return { rows: [] };
   }
 }
 
 /**
  * Execute a Dune query and return the results
  */
-async function executeDuneQuery(queryId: number, parameters: DuneQueryParameter[] = []) {
+async function executeDuneQuery(
+  queryId: number,
+  parameters: DuneQueryParameter[] = []
+) {
   if (!DUNE_API_KEY) {
-    throw new Error("DUNE_API_KEY is not set")
+    throw new Error("DUNE_API_KEY is not set");
   }
 
   try {
     // Step 1: Execute the query
-    const executeResponse = await fetch(`https://api.dune.com/api/v1/query/${queryId}/execute`, {
-      method: "POST",
-      headers: {
-        "X-Dune-API-Key": DUNE_API_KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ parameters }),
-    })
+    const executeResponse = await fetch(
+      `https://api.dune.com/api/v1/query/${queryId}/execute`,
+      {
+        method: "POST",
+        headers: {
+          "X-Dune-API-Key": DUNE_API_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ parameters }),
+      }
+    );
 
     if (!executeResponse.ok) {
-      throw new Error(`Failed to execute query: ${executeResponse.statusText}`)
+      throw new Error(`Failed to execute query: ${executeResponse.statusText}`);
     }
 
-    const executeData = await executeResponse.json()
-    const executionId = executeData.execution_id
+    const executeData = await executeResponse.json();
+    const executionId = executeData.execution_id;
 
     // Step 2: Poll for results
-    let executionStatus: DuneExecutionResponse
-    let attempts = 0
-    const maxAttempts = 10
+    let executionStatus: DuneExecutionResponse;
+    let attempts = 0;
+    const maxAttempts = 10;
 
     do {
       // Wait a bit between polling attempts
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      const statusResponse = await fetch(`https://api.dune.com/api/v1/execution/${executionId}/status`, {
-        headers: {
-          "X-Dune-API-Key": DUNE_API_KEY,
-        },
-      })
+      const statusResponse = await fetch(
+        `https://api.dune.com/api/v1/execution/${executionId}/status`,
+        {
+          headers: {
+            "X-Dune-API-Key": DUNE_API_KEY,
+          },
+        }
+      );
 
       if (!statusResponse.ok) {
-        throw new Error(`Failed to get execution status: ${statusResponse.statusText}`)
+        throw new Error(
+          `Failed to get execution status: ${statusResponse.statusText}`
+        );
       }
 
-      executionStatus = await statusResponse.json()
-      attempts++
+      executionStatus = await statusResponse.json();
+      attempts++;
     } while (
       executionStatus.state !== "QUERY_STATE_COMPLETED" &&
       executionStatus.state !== "QUERY_STATE_FAILED" &&
       attempts < maxAttempts
-    )
+    );
 
     if (executionStatus.state === "QUERY_STATE_FAILED") {
-      throw new Error("Query execution failed")
+      throw new Error("Query execution failed");
     }
 
     if (executionStatus.state !== "QUERY_STATE_COMPLETED") {
-      throw new Error("Query execution timed out")
+      throw new Error("Query execution timed out");
     }
 
     // Step 3: Get the results
-    const resultsResponse = await fetch(`https://api.dune.com/api/v1/execution/${executionId}/results`, {
-      headers: {
-        "X-Dune-API-Key": DUNE_API_KEY,
-      },
-    })
+    const resultsResponse = await fetch(
+      `https://api.dune.com/api/v1/execution/${executionId}/results`,
+      {
+        headers: {
+          "X-Dune-API-Key": DUNE_API_KEY,
+        },
+      }
+    );
 
     if (!resultsResponse.ok) {
-      throw new Error(`Failed to get results: ${resultsResponse.statusText}`)
+      throw new Error(`Failed to get results: ${resultsResponse.statusText}`);
     }
 
-    const resultsData = await resultsResponse.json()
-    return resultsData.result
+    const resultsData = await resultsResponse.json();
+    return resultsData.result;
   } catch (error) {
-    console.error("Error executing Dune query:", error)
-    throw error
+    console.error("Error executing Dune query:", error);
+    throw error;
   }
 }
 
@@ -584,9 +603,12 @@ async function executeDuneQuery(queryId: number, parameters: DuneQueryParameter[
 async function fetchVolumeByToken(): Promise<VolumeByTokenData[]> {
   try {
     // Check if data exists in cache
-    const cachedData = await getFromCache<VolumeByTokenData[]>(CACHE_KEYS.VOLUME_TOKENS)
+    console.log("Using mock volume by token data in preview environment");
+    const cachedData = await getFromCache<VolumeByTokenData[]>(
+      CACHE_KEYS.VOLUME_TOKENS
+    );
     if (cachedData) {
-      return cachedData
+      return cachedData;
     }
 
     // Use mock data in preview environments
@@ -597,14 +619,15 @@ async function fetchVolumeByToken(): Promise<VolumeByTokenData[]> {
         vol_usd: token.vol_usd,
         txs: token.txs,
         created_time: token.created_time,
-      }))
+      }));
 
       // Store in cache
-      await setInCache(CACHE_KEYS.VOLUME_TOKENS, tokens)
-      return tokens
+      await setInCache(CACHE_KEYS.VOLUME_TOKENS, tokens);
+      return tokens;
     }
 
-    const result = await fetchDuneQueryResults(5140151, 1000)
+    console.log("Fetching volume by token data from Dune");
+    const result = await fetchDuneQueryResults(5140151, 1000);
 
     if (result && result.rows && result.rows.length > 0) {
       // Process the data from the query
@@ -615,18 +638,18 @@ async function fetchVolumeByToken(): Promise<VolumeByTokenData[]> {
           vol_usd: Number.parseFloat(row.vol_usd || 0),
           txs: Number.parseInt(row.txs || 0),
           created_time: row.created_time,
-        }
-      })
+        };
+      });
 
       // Store in cache
-      await setInCache(CACHE_KEYS.VOLUME_TOKENS, tokens)
-      return tokens
+      await setInCache(CACHE_KEYS.VOLUME_TOKENS, tokens);
+      return tokens;
     }
 
-    throw new Error("No volume data returned from Dune query")
+    throw new Error("No volume data returned from Dune query");
   } catch (error) {
-    console.error("Error fetching volume by token data from Dune:", error)
-    return []
+    console.error("Error fetching volume by token data from Dune:", error);
+    return [];
   }
 }
 
@@ -637,21 +660,22 @@ async function fetchVolumeByToken(): Promise<VolumeByTokenData[]> {
 async function fetchAllTokensFromDune(): Promise<TokenData[]> {
   try {
     // Check if data exists in cache
-    const cachedData = await getFromCache<TokenData[]>(CACHE_KEYS.ALL_TOKENS)
-    if (cachedData && cachedData.length > 0) {
-      return cachedData
-    }
+    // const cachedData = await getFromCache<TokenData[]>(CACHE_KEYS.ALL_TOKENS)
+    // console.log(cachedData, "HHHHHHHHHHHHHHHHHHH")
+    // if (cachedData && cachedData.length > 0) {
+    //   return cachedData
+    // }
 
     // Use mock data in preview environments
     if (IS_PREVIEW) {
-      const mockData = [...MOCK_DATA.tokens]
-      await setInCache(CACHE_KEYS.ALL_TOKENS, mockData)
-      return mockData
+      const mockData = [...MOCK_DATA.tokens];
+      await setInCache(CACHE_KEYS.ALL_TOKENS, mockData);
+      return mockData;
     }
 
     // Use the new query 5140151 which has all the data we need
-    const result = await fetchDuneQueryResults(5140151)
-
+    const result = await fetchDuneQueryResults(5140151);
+    
     if (result && result.rows && result.rows.length > 0) {
       // Process the data from the query
       const tokens = result.rows.map((row: any) => {
@@ -674,22 +698,24 @@ async function fetchAllTokensFromDune(): Promise<TokenData[]> {
           volume24h: Number.parseFloat(row.vol_usd || 0),
           token_url: row.token_url || "",
           first_trade_time: row.first_trade_time || "",
-        }
-      })
+        };
+      });
 
       // Sort tokens by market cap (descending)
-      const sortedTokens = tokens.sort((a: any, b: any) => (b.marketCap || 0) - (a.marketCap || 0))
+      const sortedTokens = tokens.sort(
+        (a: any, b: any) => (b.marketCap || 0) - (a.marketCap || 0)
+      );
 
       // Store in cache
-      await setInCache(CACHE_KEYS.ALL_TOKENS, sortedTokens)
-      return sortedTokens
+      await setInCache(CACHE_KEYS.ALL_TOKENS, sortedTokens);
+      return sortedTokens;
     }
 
-    console.warn("No data returned from Dune query, using empty array")
-    return []
+    console.warn("No data returned from Dune query, using empty array");
+    return [];
   } catch (error) {
-    console.error("Error fetching token data from Dune:", error)
-    return []
+    console.error("Error fetching token data from Dune:", error);
+    return [];
   }
 }
 
@@ -700,32 +726,36 @@ export async function fetchPaginatedTokens(
   page = 1,
   pageSize = 10,
   sortField = "marketCap",
-  sortDirection = "desc",
+  sortDirection = "desc"
 ): Promise<PaginatedTokenResponse> {
   try {
     // Get all tokens from cache or fetch if needed
-    const allTokens = await fetchAllTokensFromDune()
+    const allTokens = await fetchAllTokensFromDune();
 
     // Calculate total tokens and pages
-    const totalTokens = allTokens.length
-    const totalPages = Math.ceil(totalTokens / pageSize) || 1
+    const totalTokens = allTokens.length;
+    const totalPages = Math.ceil(totalTokens / pageSize) || 1;
 
     // Sort the tokens based on the requested sort field and direction
     const sortedTokens = [...allTokens].sort((a, b) => {
-      const aValue = a[sortField as keyof typeof a] || 0
-      const bValue = b[sortField as keyof typeof a] || 0
+      const aValue = a[sortField as keyof typeof a] || 0;
+      const bValue = b[sortField as keyof typeof a] || 0;
 
-      return sortDirection === "asc" ? (aValue as number) - (bValue as number) : (bValue as number) - (aValue as number)
-    })
+      return sortDirection === "asc"
+        ? (aValue as number) - (bValue as number)
+        : (bValue as number) - (aValue as number);
+    });
 
     // Calculate start and end indices for the requested page
-    const startIndex = (page - 1) * pageSize
-    const endIndex = Math.min(startIndex + pageSize, totalTokens)
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, totalTokens);
 
     // Get the tokens for the current page from the sorted array
-    const pageTokens = sortedTokens.slice(startIndex, endIndex)
+    const pageTokens = sortedTokens.slice(startIndex, endIndex);
 
-
+    console.log(
+      `Fetching page ${page} (${startIndex}-${endIndex}) of ${totalPages} pages`
+    );
     // Return the paginated response
     return {
       tokens: pageTokens,
@@ -733,16 +763,16 @@ export async function fetchPaginatedTokens(
       pageSize,
       totalTokens,
       totalPages,
-    }
+    };
   } catch (error) {
-    console.error("Error fetching paginated tokens:", error)
+    console.error("Error fetching paginated tokens:", error);
     return {
       tokens: [],
       page,
       pageSize,
       totalTokens: 0,
       totalPages: 1,
-    }
+    };
   }
 }
 
@@ -753,11 +783,11 @@ export async function fetchPaginatedTokens(
 export async function fetchTokenData(): Promise<TokenData[]> {
   try {
     // Use the paginated function but get only the first 10 tokens
-    const paginatedResponse = await fetchPaginatedTokens(1, 10)
-    return paginatedResponse.tokens
+    const paginatedResponse = await fetchPaginatedTokens(1, 10);
+    return paginatedResponse.tokens;
   } catch (error) {
-    console.error("Error in fetchTokenData:", error)
-    return []
+    console.error("Error in fetchTokenData:", error);
+    return [];
   }
 }
 
@@ -765,22 +795,25 @@ export async function fetchTokenData(): Promise<TokenData[]> {
  * Fetch market cap over time data (5119241)
  */
 export async function fetchMarketCapOverTime(): Promise<MarketCapTimeData[]> {
-  const MARKET_CAP_QUERY_ID = 5119241
+  const MARKET_CAP_QUERY_ID = 5119241;
   try {
     // Check if data exists in cache
-    const cachedData = await getFromCache<MarketCapTimeData[]>(CACHE_KEYS.MARKET_CAP_TIME)
+    const cachedData = await getFromCache<MarketCapTimeData[]>(
+      CACHE_KEYS.MARKET_CAP_TIME
+    );
     if (cachedData && cachedData.length > 0) {
-      return cachedData
+      return cachedData;
     }
 
     // Use mock data in preview environments
+    console.log("Using mock market cap time data in preview environment");
     if (IS_PREVIEW) {
-      const mockData = [...MOCK_DATA.marketCapTimeData]
-      await setInCache(CACHE_KEYS.MARKET_CAP_TIME, mockData)
-      return mockData
+      const mockData = [...MOCK_DATA.marketCapTimeData];
+      await setInCache(CACHE_KEYS.MARKET_CAP_TIME, mockData);
+      return mockData;
     }
 
-    const result = await fetchDuneQueryResults(MARKET_CAP_QUERY_ID)
+    const result = await fetchDuneQueryResults(MARKET_CAP_QUERY_ID);
 
     if (result && result.rows && result.rows.length > 0) {
       const data = result.rows.map((row: any) => ({
@@ -790,18 +823,20 @@ export async function fetchMarketCapOverTime(): Promise<MarketCapTimeData[]> {
         nh_diff_1d: Number.parseFloat(row.nh_diff_1d || 0),
         nh_diff_7d: Number.parseFloat(row.nh_diff_7d || 0),
         nh_diff_30d: Number.parseFloat(row.nh_diff_30d || 0),
-      }))
+      }));
 
       // Store in cache
-      await setInCache(CACHE_KEYS.MARKET_CAP_TIME, data)
-      return data
+      await setInCache(CACHE_KEYS.MARKET_CAP_TIME, data);
+      return data;
     }
 
-    console.warn("No market cap time data returned from Dune query, using empty array")
-    return []
+    console.warn(
+      "No market cap time data returned from Dune query, using empty array"
+    );
+    return [];
   } catch (error) {
-    console.error("Error fetching market cap time data:", error)
-    return []
+    console.error("Error fetching market cap time data:", error);
+    return [];
   }
 }
 
@@ -811,23 +846,26 @@ export async function fetchMarketCapOverTime(): Promise<MarketCapTimeData[]> {
 export async function fetchTokenMarketCaps(): Promise<TokenMarketCapData[]> {
   try {
     // Check if data exists in cache
-    const cachedData = await getFromCache<TokenMarketCapData[]>(CACHE_KEYS.TOKEN_MARKET_CAPS)
+    const cachedData = await getFromCache<TokenMarketCapData[]>(
+      CACHE_KEYS.TOKEN_MARKET_CAPS
+    );
     if (cachedData && cachedData.length > 0) {
-      return cachedData
+      return cachedData;
     }
 
     // Use mock data in preview environments
     if (IS_PREVIEW) {
-      const mockData = [...MOCK_DATA.tokenMarketCaps]
-      await setInCache(CACHE_KEYS.TOKEN_MARKET_CAPS, mockData)
-      return mockData
+      console.log("Using mock token market cap data in preview environment");
+      const mockData = [...MOCK_DATA.tokenMarketCaps];
+      await setInCache(CACHE_KEYS.TOKEN_MARKET_CAPS, mockData);
+      return mockData;
     }
 
-    const result = await fetchDuneQueryResults(5140151)
+    const result = await fetchDuneQueryResults(5140151);
 
     if (result && result.rows && result.rows.length > 0) {
       // Get the current date for all entries
-      const currentDate = new Date().toISOString().split("T")[0]
+      const currentDate = new Date().toISOString().split("T")[0];
 
       const data = result.rows.map((row: any, index: number) => ({
         date: currentDate,
@@ -837,18 +875,20 @@ export async function fetchTokenMarketCaps(): Promise<TokenMarketCapData[]> {
         market_cap_usd: Number.parseFloat(row.market_cap_usd || 0),
         num_holders: Number.parseInt(row.num_holders || 0),
         rn: index + 1, // Assign rank based on array index
-      }))
+      }));
 
       // Store in cache
-      await setInCache(CACHE_KEYS.TOKEN_MARKET_CAPS, data)
-      return data
+      await setInCache(CACHE_KEYS.TOKEN_MARKET_CAPS, data);
+      return data;
     }
 
-    console.warn("No token market cap data returned from Dune query, using empty array")
-    return []
+    console.warn(
+      "No token market cap data returned from Dune query, using empty array"
+    );
+    return [];
   } catch (error) {
-    console.error("Error fetching token market cap data:", error)
-    return []
+    console.error("Error fetching token market cap data:", error);
+    return [];
   }
 }
 
@@ -858,48 +898,53 @@ export async function fetchTokenMarketCaps(): Promise<TokenMarketCapData[]> {
 export async function fetchTotalMarketCap(): Promise<TotalMarketCapData> {
   try {
     // Check if data exists in cache
-    const cachedData = await getFromCache<TotalMarketCapData>(CACHE_KEYS.TOTAL_MARKET_CAP)
+    const cachedData = await getFromCache<TotalMarketCapData>(
+      CACHE_KEYS.TOTAL_MARKET_CAP
+    );
     if (cachedData && cachedData.latest_data_at) {
-      return cachedData
+      return cachedData;
     }
 
     // Use mock data in preview environments
     if (IS_PREVIEW) {
-      const mockData = { ...MOCK_DATA.totalMarketCap }
-      await setInCache(CACHE_KEYS.TOTAL_MARKET_CAP, mockData)
-      return mockData
+      console.log("Using mock total market cap data in preview environment");
+      const mockData = { ...MOCK_DATA.totalMarketCap };
+      await setInCache(CACHE_KEYS.TOTAL_MARKET_CAP, mockData);
+      return mockData;
     }
 
     // IMPORTANT: Make sure we're using query 5140151 consistently
-    const result = await fetchDuneQueryResults(5140151)
+    const result = await fetchDuneQueryResults(5140151);
 
     if (result && result.rows && result.rows.length > 0) {
       // Calculate total market cap by summing all token market caps
       const totalMarketCap = result.rows.reduce((sum: number, row: any) => {
-        return sum + Number.parseFloat(row.market_cap_usd || 0)
-      }, 0)
+        return sum + Number.parseFloat(row.market_cap_usd || 0);
+      }, 0);
 
       const data = {
         latest_data_at: new Date().toISOString(),
         total_marketcap_usd: totalMarketCap,
-      }
+      };
 
       // Store in cache
-      await setInCache(CACHE_KEYS.TOTAL_MARKET_CAP, data)
-      return data
+      await setInCache(CACHE_KEYS.TOTAL_MARKET_CAP, data);
+      return data;
     }
 
-    console.warn("No total market cap data returned from Dune query, using default values")
+    console.warn(
+      "No total market cap data returned from Dune query, using default values"
+    );
     return {
       latest_data_at: new Date().toISOString(),
       total_marketcap_usd: 0,
-    }
+    };
   } catch (error) {
-    console.error("Error fetching total market cap data:", error)
+    console.error("Error fetching total market cap data:", error);
     return {
       latest_data_at: new Date().toISOString(),
       total_marketcap_usd: 0,
-    }
+    };
   }
 }
 
@@ -909,44 +954,52 @@ export async function fetchTotalMarketCap(): Promise<TotalMarketCapData> {
 export async function fetchNewTokens(limit = 10): Promise<NewTokenData[]> {
   try {
     // Check if data exists in cache
-    const cachedData = await getFromCache<NewTokenData[]>(CACHE_KEYS.NEW_TOKENS)
+    const cachedData = await getFromCache<NewTokenData[]>(
+      CACHE_KEYS.NEW_TOKENS
+    );
     if (cachedData) {
-      return cachedData.slice(0, limit)
+      return cachedData.slice(0, limit);
     }
 
     // Use mock data in preview environments
     if (IS_PREVIEW) {
-      const mockData = [...MOCK_DATA.newTokens]
-      await setInCache(CACHE_KEYS.NEW_TOKENS, mockData)
-      return mockData.slice(0, limit)
+      console.log("Using mock new token data in preview environment");
+      const mockData = [...MOCK_DATA.newTokens];
+      await setInCache(CACHE_KEYS.NEW_TOKENS, mockData);
+      return mockData.slice(0, limit);
     }
 
-    const result = await fetchDuneQueryResults(5140151)
+    const result = await fetchDuneQueryResults(5140151);
 
     if (result && result.rows && result.rows.length > 0) {
       // Sort by created_time (newest first)
       const sortedRows = [...result.rows].sort((a, b) => {
-        return new Date(b.created_time).getTime() - new Date(a.created_time).getTime()
-      })
+        return (
+          new Date(b.created_time).getTime() -
+          new Date(a.created_time).getTime()
+        );
+      });
 
       const data = sortedRows.map((row: any) => ({
         token_mint_address: row.token,
         created_time: row.created_time,
         name: row.name || "Unknown",
         symbol: row.symbol || "???",
-        market_cap_usd: row.market_cap_usd ? Number.parseFloat(row.market_cap_usd) : 0,
+        market_cap_usd: row.market_cap_usd
+          ? Number.parseFloat(row.market_cap_usd)
+          : 0,
         num_holders: Number.parseInt(row.num_holders || 0),
-      }))
+      }));
 
       // Store in cache
-      await setInCache(CACHE_KEYS.NEW_TOKENS, data)
-      return data.slice(0, limit)
+      await setInCache(CACHE_KEYS.NEW_TOKENS, data);
+      return data.slice(0, limit);
     }
 
-    throw new Error("No new token data returned from Dune query")
+    throw new Error("No new token data returned from Dune query");
   } catch (error) {
-    console.error("Error fetching new token data:", error)
-    return []
+    console.error("Error fetching new token data:", error);
+    return [];
   }
 }
 
@@ -955,43 +1008,43 @@ export async function fetchNewTokens(limit = 10): Promise<NewTokenData[]> {
  */
 export async function fetchMarketStats(): Promise<MarketStats> {
   try {
-    // Check if data exists in cache
-    const cachedData = await getFromCache<MarketStats>(CACHE_KEYS.MARKET_STATS)
-    if (cachedData && cachedData.totalMarketCap !== undefined) {
-      return cachedData
-    }
+    // // Check if data exists in cache
+    // const cachedData = await getFromCache<MarketStats>(CACHE_KEYS.MARKET_STATS);
+    // if (cachedData && cachedData.totalMarketCap !== undefined) {
+    //   return cachedData;
+    // }
 
     // Use mock data in preview environments
     if (IS_PREVIEW) {
-      const mockData = { ...MOCK_DATA.marketStats }
-      await setInCache(CACHE_KEYS.MARKET_STATS, mockData)
-      return mockData
+      const mockData = { ...MOCK_DATA.marketStats };
+      await setInCache(CACHE_KEYS.MARKET_STATS, mockData);
+      return mockData;
     }
 
     // Fetch data from the new query
-    const result = await fetchDuneQueryResults(5140151)
+    const result = await fetchDuneQueryResults(5140151);
 
     if (result && result.rows && result.rows.length > 0) {
       // Calculate total market cap
       const totalMarketCap = result.rows.reduce((sum: number, row: any) => {
-        return sum + Number.parseFloat(row.market_cap_usd || 0)
-      }, 0)
+        return sum + Number.parseFloat(row.market_cap_usd || 0);
+      }, 0);
 
       // Calculate total volume
       const volume24h = result.rows.reduce((sum: number, row: any) => {
-        return sum + Number.parseFloat(row.vol_usd || 0)
-      }, 0)
+        return sum + Number.parseFloat(row.vol_usd || 0);
+      }, 0);
 
       // Calculate total transactions
       const transactions24h = result.rows.reduce((sum: number, row: any) => {
-        return sum + Number.parseInt(row.txs || 0)
-      }, 0)
+        return sum + Number.parseInt(row.txs || 0);
+      }, 0);
 
       // Calculate fee earnings (e.g., 0.3% of volume)
-      const feeEarnings24h = volume24h * 0.003
+      const feeEarnings24h = volume24h * 0.003;
 
       // Count total number of tokens
-      const coinLaunches = result.rows.length
+      const coinLaunches = result.rows.length;
 
       const data = {
         totalMarketCap,
@@ -1000,14 +1053,18 @@ export async function fetchMarketStats(): Promise<MarketStats> {
         feeEarnings24h,
         lifetimeVolume: volume24h * 30, // Estimate lifetime as 30 days of volume
         coinLaunches,
-      }
+      };
 
       // Store in cache
-      await setInCache(CACHE_KEYS.MARKET_STATS, data)
-      return data
+      console.log(data, "MARKET STATS")
+      await setInCache(CACHE_KEYS.MARKET_STATS, data);
+      console.log(await getFromCache<MarketStats>(CACHE_KEYS.MARKET_STATS), "MARKET STATS CACHE")
+      return data;
     }
 
-    console.warn("No token data available to calculate market stats, using default values")
+    console.warn(
+      "No token data available to calculate market stats, using default values"
+    );
     return {
       totalMarketCap: 0,
       volume24h: 0,
@@ -1015,9 +1072,9 @@ export async function fetchMarketStats(): Promise<MarketStats> {
       feeEarnings24h: 0,
       lifetimeVolume: 0,
       coinLaunches: 0,
-    }
+    };
   } catch (error) {
-    console.error("Error calculating market stats:", error)
+    console.error("Error calculating market stats:", error);
     // Return default values in case of error
     return {
       totalMarketCap: 0,
@@ -1026,136 +1083,144 @@ export async function fetchMarketStats(): Promise<MarketStats> {
       feeEarnings24h: 0,
       lifetimeVolume: 0,
       coinLaunches: 0,
-    }
+    };
   }
 }
 
 /**
  * Fetch data for a specific token
  */
-export async function fetchTokenDetails(symbol: string): Promise<TokenData | null> {
+export async function fetchTokenDetails(
+  symbol: string
+): Promise<TokenData | null> {
   try {
     if (!symbol) {
-      console.warn("No symbol provided to fetchTokenDetails")
-      return null
+      console.warn("No symbol provided to fetchTokenDetails");
+      return null;
     }
 
     // Use mock data in preview environments
     if (IS_PREVIEW) {
-      const token = MOCK_DATA.tokens.find((t) => t.symbol.toLowerCase() === symbol.toLowerCase())
-      return token || null
+      const token = MOCK_DATA.tokens.find(
+        (t) => t.symbol.toLowerCase() === symbol.toLowerCase()
+      );
+      return token || null;
     }
 
     // Get all tokens from cache or fetch if needed
-    const allTokens = await fetchAllTokensFromDune()
-
+    const allTokens = await fetchAllTokensFromDune();
+    console.log("Successfully fetched all tokens data");
     // Find the token in the cache
-    const token = allTokens.find((token) => token.symbol.toLowerCase() === symbol.toLowerCase())
+    const token = allTokens.find(
+      (token) => token.symbol.toLowerCase() === symbol.toLowerCase()
+    );
 
     if (!token) {
-      console.warn(`Token with symbol ${symbol} not found`)
-      return null
+      console.warn(`Token with symbol ${symbol} not found`);
+      return null;
     }
 
-    return token
+    return token;
   } catch (error) {
-    console.error("Error fetching token details:", error)
-    return null
+    console.error("Error fetching token details:", error);
+    return null;
   }
 }
 
 // Get time until next refresh using Redis cache
-export async function getTimeUntilNextDuneRefresh(): Promise<{ timeRemaining: number; lastRefreshTime: Date }> {
+export async function getTimeUntilNextDuneRefresh(): Promise<{
+  timeRemaining: number;
+  lastRefreshTime: Date;
+}> {
   // In preview, simulate a refresh that happened 1 hour ago
   if (IS_PREVIEW) {
-    const mockLastRefreshTime = new Date(Date.now() - 60 * 60 * 1000) // 1 hour ago
-    const timeRemaining = 3 * 60 * 60 * 1000 // 3 hours remaining (out of 4)
+    const mockLastRefreshTime = new Date(Date.now() - 60 * 60 * 1000); // 1 hour ago
+    const timeRemaining = 3 * 60 * 60 * 1000; // 3 hours remaining (out of 4)
 
     return {
       timeRemaining,
       lastRefreshTime: mockLastRefreshTime,
-    }
+    };
   }
 
   try {
-    const { timeRemaining, lastRefreshTime } = await getTimeUntilNextRefresh()
+    const { timeRemaining, lastRefreshTime } = await getTimeUntilNextRefresh();
 
     return {
       timeRemaining: timeRemaining || 0,
-      lastRefreshTime: lastRefreshTime || new Date(Date.now() - CACHE_DURATION), 
-    }
+      lastRefreshTime: lastRefreshTime || new Date(Date.now() - CACHE_DURATION),
+    };
   } catch (error) {
-    console.error("Error getting time until next Dune refresh:", error)
+    console.error("Error getting time until next Dune refresh:", error);
     // Return default values in case of error
     return {
       timeRemaining: 0,
       lastRefreshTime: new Date(Date.now() - CACHE_DURATION),
-    }
+    };
   }
 }
 
-// Find the forceDuneDataRefresh function and replace it with this optimized version
-// that only fetches data from the queries we actually use
+
 
 // Force refresh all Dune data
 export async function forceDuneDataRefresh(): Promise<boolean> {
   try {
     console.log("Forcing Dune data refresh...", IS_PREVIEW);
     if (IS_PREVIEW) {
-      return true
+      return true;
     }
 
     // Try to acquire the refresh lock
-    let lockAcquired = false
+    let lockAcquired = false;
     try {
-      lockAcquired = await acquireRefreshLock()
+      lockAcquired = await acquireRefreshLock();
     } catch (error) {
-      console.error("Error acquiring refresh lock:", error)
+      console.error("Error acquiring refresh lock:", error);
       // Continue without lock in case of error
     }
 
     if (!lockAcquired) {
-      return false
+      return false;
     }
 
     try {
-
       // Fetch data from each query separately with error handling
       try {
-        await fetchAllTokensFromDune() // Uses query 5140151
+        await fetchAllTokensFromDune(); // Uses query 5140151
       } catch (error) {
-        console.error("Error fetching all tokens data:", error)
+        console.error("Error fetching all tokens data:", error);
       }
 
       try {
-        await fetchMarketCapOverTime() // Uses query 5119241
+        await fetchMarketCapOverTime(); // Uses query 5119241
+        console.log("Successfully fetched market cap over time data");
       } catch (error) {
-        console.error("Error fetching market cap over time data:", error)
+        console.error("Error fetching market cap over time data:", error);
       }
 
       // Update refresh timestamps
-      const now = Date.now()
-      const nextRefresh = now + CACHE_DURATION
+      const now = Date.now();
+      const nextRefresh = now + CACHE_DURATION;
 
       try {
-        await setInCache(CACHE_KEYS.LAST_REFRESH_TIME, now)
-        await setInCache(CACHE_KEYS.NEXT_REFRESH_TIME, nextRefresh)
+        await setInCache(CACHE_KEYS.LAST_REFRESH_TIME, now);
+        await setInCache(CACHE_KEYS.NEXT_REFRESH_TIME, nextRefresh);
       } catch (error) {
-        console.error("Error updating refresh timestamps:", error)
+        console.error("Error updating refresh timestamps:", error);
       }
 
-      return true
+      return true;
     } finally {
       // Always release the lock when done
       try {
-        await releaseRefreshLock()
+        await releaseRefreshLock();
       } catch (error) {
-        console.error("Error releasing refresh lock:", error)
+        console.error("Error releasing refresh lock:", error);
       }
     }
   } catch (error) {
-    console.error("Error forcing Dune data refresh:", error)
-    return false
+    console.error("Error forcing Dune data refresh:", error);
+    return false;
   }
 }
 
@@ -1164,71 +1229,74 @@ export async function refreshDuneData(): Promise<boolean> {
   try {
     // Skip in preview environments
     if (IS_PREVIEW) {
-      return true
+      return true;
     }
 
     // Check if it's time to refresh
-    let refreshInfo
+    let refreshInfo;
     try {
-      refreshInfo = await getTimeUntilNextRefresh()
+      refreshInfo = await getTimeUntilNextRefresh();
     } catch (error) {
-      console.error("Error getting refresh time info:", error)
+      console.error("Error getting refresh time info:", error);
       // If we can't get refresh info, assume it's time to refresh
-      refreshInfo = { timeRemaining: 0, lastRefreshTime: null, nextRefreshTime: null }
+      refreshInfo = {
+        timeRemaining: 0,
+        lastRefreshTime: null,
+        nextRefreshTime: null,
+      };
     }
 
     // If more than 30 minutes remaining, skip refresh
     if (refreshInfo.timeRemaining > 30 * 60 * 1000) {
-      return false
+      return false;
     }
 
     // Try to acquire the refresh lock
-    let lockAcquired = false
+    let lockAcquired = false;
     try {
-      lockAcquired = await acquireRefreshLock()
+      lockAcquired = await acquireRefreshLock();
     } catch (error) {
-      console.error("Error acquiring refresh lock:", error)
+      console.error("Error acquiring refresh lock:", error);
     }
 
     if (!lockAcquired) {
-      return false
+      return false;
     }
 
     try {
-
       try {
-        await fetchAllTokensFromDune() // Uses query 5140151
+        await fetchAllTokensFromDune(); // Uses query 5140151
       } catch (error) {
-        console.error("Error fetching all tokens data:", error)
+        console.error("Error fetching all tokens data:", error);
       }
 
       try {
-        await fetchMarketCapOverTime() // Uses query 5119241
+        await fetchMarketCapOverTime(); // Uses query 5119241
       } catch (error) {
-        console.error("Error fetching market cap over time data:", error)
+        console.error("Error fetching market cap over time data:", error);
       }
 
-      const now = Date.now()
-      const nextRefresh = now + CACHE_DURATION
+      const now = Date.now();
+      const nextRefresh = now + CACHE_DURATION;
 
       try {
-        await setInCache(CACHE_KEYS.LAST_REFRESH_TIME, now)
-        await setInCache(CACHE_KEYS.NEXT_REFRESH_TIME, nextRefresh)
+        await setInCache(CACHE_KEYS.LAST_REFRESH_TIME, now);
+        await setInCache(CACHE_KEYS.NEXT_REFRESH_TIME, nextRefresh);
       } catch (error) {
-        console.error("Error updating refresh timestamps:", error)
+        console.error("Error updating refresh timestamps:", error);
       }
-
-      return true
+      console.log("Scheduled data refresh completed successfully");
+      return true;
     } finally {
       // Always release the lock when done
       try {
-        await releaseRefreshLock()
+        await releaseRefreshLock();
       } catch (error) {
-        console.error("Error releasing refresh lock:", error)
+        console.error("Error releasing refresh lock:", error);
       }
     }
   } catch (error) {
-    console.error("Error during scheduled Dune data refresh:", error)
-    return false
+    console.error("Error during scheduled Dune data refresh:", error);
+    return false;
   }
 }

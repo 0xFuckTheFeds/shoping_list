@@ -26,7 +26,7 @@ import { Suspense } from "react"
 import TokenTable from "@/components/token-table"
 import { CopyAddress } from "@/components/copy-address"
 import { DuneQueryLink } from "@/components/dune-query-link"
-import { AutoRefreshComponent } from "@/components/auto-refresh-component"
+import { AdminRefreshButton } from "@/components/admin-refresh-button"
 
 
 // Define wrapper components to handle promises with error handling
@@ -231,7 +231,7 @@ export default async function Home() {
           </div>
           <div className="flex items-center gap-2">
             {/* Silent auto refresh component (no visible UI) */}
-            <AutoRefreshComponent />
+            <AdminRefreshButton />
             <ThemeToggle />
           </div>
         </div>

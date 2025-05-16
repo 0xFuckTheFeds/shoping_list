@@ -52,6 +52,10 @@ export default function TokenPage({ params }: { params: { symbol: string } }) {
       })
     : "N/A"
 
+      const duneHoursRemaining = Math.floor(duneTimeRemaining / (60 * 60 * 1000))
+      const duneMinutesRemaining = Math.floor((duneTimeRemaining % (60 * 60 * 1000)) / (60 * 1000))
+      const dexMinutesRemaining = Math.floor(dexTimeRemaining / (60 * 1000))
+
   useEffect(() => {
     async function loadData() {
       try {
