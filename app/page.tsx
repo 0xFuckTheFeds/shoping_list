@@ -1,16 +1,15 @@
-import { ExternalLink, Twitter } from "lucide-react"
-import Image from "next/image"
-import { DashcoinLogo } from "@/components/dashcoin-logo"
+// app/page.tsx
+import Image from "next/image";
+import { DashcoinLogo } from "@/components/dashcoin-logo";
 import {
   DashcoinCard,
   DashcoinCardHeader,
   DashcoinCardTitle,
   DashcoinCardContent,
   DashcoinCacheStatus,
-} from "@/components/ui/dashcoin-card"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { MarketCapChart } from "@/components/market-cap-chart"
-import { MarketCapPie } from "@/components/market-cap-pie"
+} from "@/components/ui/dashcoin-card";
+import { MarketCapChart } from "@/components/market-cap-chart";
+import { MarketCapPie } from "@/components/market-cap-pie";
 import {
   fetchMarketCapOverTime,
   fetchMarketStats,
@@ -18,79 +17,104 @@ import {
   fetchTokenMarketCaps,
   fetchTotalMarketCap,
   getTimeUntilNextDuneRefresh,
-} from "./actions/dune-actions"
-import { fetchDexscreenerTokenData } from "./actions/dexscreener-actions"
-import { formatCurrency } from "@/lib/utils"
-import EnvSetup from "./env-setup"
-import { Suspense } from "react"
-import TokenTable from "@/components/token-table"
-import { CopyAddress } from "@/components/copy-address"
-import { DuneQueryLink } from "@/components/dune-query-link"
-import { AdminRefreshButton } from "@/components/admin-refresh-button"
-
+} from "./actions/dune-actions";
+import { fetchDexscreenerTokenData } from "./actions/dexscreener-actions";
+import { formatCurrency } from "@/lib/utils";
+import EnvSetup from "./env-setup";
+import { Suspense } from "react";
+import TokenTable from "@/components/token-table";
+import { CopyAddress } from "@/components/copy-address";
+import { DuneQueryLink } from "@/components/dune-query-link";
+import { Navbar } from "@/components/navbar";
+import { Twitter } from "lucide-react";
 
 // Define wrapper components to handle promises with error handling
-const MarketCapChartWrapper = async ({ marketCapTimeDataPromise }: { marketCapTimeDataPromise: Promise<any> }) => {
+const MarketCapChartWrapper = async ({
+  marketCapTimeDataPromise,
+}: {
+  marketCapTimeDataPromise: Promise<any>;
+}) => {
   try {
-    const marketCapTimeData = await marketCapTimeDataPromise
-    return <MarketCapChart data={marketCapTimeData || []} />
+    const marketCapTimeData = await marketCapTimeDataPromise;
+    return <MarketCapChart data={marketCapTimeData || []} />;
   } catch (error) {
-    console.error("Error in MarketCapChartWrapper:", error)
+    console.error("Error in MarketCapChartWrapper:", error);
     return (
       <DashcoinCard className="h-80 flex items-center justify-center">
         <p>Error loading chart data</p>
       </DashcoinCard>
-    )
+    );
   }
-}
+};
 
-const MarketCapPieWrapper = async ({ tokenMarketCapsPromise }: { tokenMarketCapsPromise: Promise<any> }) => {
+const MarketCapPieWrapper = async ({
+  tokenMarketCapsPromise,
+}: {
+  tokenMarketCapsPromise: Promise<any>;
+}) => {
   try {
-    const tokenMarketCaps = await tokenMarketCapsPromise
-    return <MarketCapPie data={tokenMarketCaps || []} />
+    const tokenMarketCaps = await tokenMarketCapsPromise;
+    return <MarketCapPie data={tokenMarketCaps || []} />;
   } catch (error) {
-    console.error("Error in MarketCapPieWrapper:", error)
+    console.error("Error in MarketCapPieWrapper:", error);
     return (
       <DashcoinCard className="h-80 flex items-center justify-center">
         <p>Error loading chart data</p>
       </DashcoinCard>
-    )
+    );
   }
-}
+};
 
-const TokenTableWrapper = async ({ tokenDataPromise }: { tokenDataPromise: Promise<any> }) => {
+const TokenTableWrapper = async ({
+  tokenDataPromise,
+}: {
+  tokenDataPromise: Promise<any>;
+}) => {
   try {
-    const tokenData = await tokenDataPromise
-    return <TokenTable data={tokenData || { tokens: [], page: 1, pageSize: 10, totalTokens: 0, totalPages: 1 }} />
+    const tokenData = await tokenDataPromise;
+    return (
+      <TokenTable
+        data={
+          tokenData || {
+            tokens: [],
+            page: 1,
+            pageSize: 10,
+            totalTokens: 0,
+            totalPages: 1,
+          }
+        }
+      />
+    );
   } catch (error) {
-    console.error("Error in TokenTableWrapper:", error)
+    console.error("Error in TokenTableWrapper:", error);
     return (
       <DashcoinCard className="p-8 flex items-center justify-center">
         <p className="text-center">Error loading token data</p>
       </DashcoinCard>
-    )
+    );
   }
-}
+};
 
 export default async function Home() {
   // Check if DUNE_API_KEY is set
-  const hasDuneApiKey = !!process.env.DUNE_API_KEY
+  const hasDuneApiKey = !!process.env.DUNE_API_KEY;
 
   // If no API key, show setup screen
   if (!hasDuneApiKey) {
-    return <EnvSetup />
+    return <EnvSetup />;
   }
 
   // Dashcoin contract address
-  const dashcoinCA = "7gkgsqE2Uip7LUyrqEi8fyLPNSbn7GYu9yFgtxZwYUVa"
+  const dashcoinCA = "7gkgsqE2Uip7LUyrqEi8fyLPNSbn7GYu9yFgtxZwYUVa";
   // Dashcoin trade link
-  const dashcoinTradeLink = "https://axiom.trade/t/fRfKGCriduzDwSudCwpL7ySCEiboNuryhZDVJtr1a1C/dashc"
+  const dashcoinTradeLink =
+    "https://axiom.trade/t/fRfKGCriduzDwSudCwpL7ySCEiboNuryhZDVJtr1a1C/dashc";
   // Dashcoin X (Twitter) link
-  const dashcoinXLink = "https://x.com/dune_dashcoin"
+  const dashcoinXLink = "https://x.com/dune_dashcoin";
 
   // Fetch data from Dune with error handling
   const marketStatsPromise = fetchMarketStats().catch((error) => {
-    console.error("Error fetching market stats:", error)
+    console.error("Error fetching market stats:", error);
     return {
       totalMarketCap: 0,
       volume24h: 0,
@@ -98,45 +122,55 @@ export default async function Home() {
       feeEarnings24h: 0,
       lifetimeVolume: 0,
       coinLaunches: 0,
-    }
-  })
+    };
+  });
 
-  const tokenDataPromise = fetchPaginatedTokens(1, 10, "marketCap", "desc").catch((error) => {
-    console.error("Error fetching paginated tokens:", error)
-    return { tokens: [], page: 1, pageSize: 10, totalTokens: 0, totalPages: 1 }
-  })
+  const tokenDataPromise = fetchPaginatedTokens(1, 10, "marketCap", "desc").catch(
+    (error) => {
+      console.error("Error fetching paginated tokens:", error);
+      return {
+        tokens: [],
+        page: 1,
+        pageSize: 10,
+        totalTokens: 0,
+        totalPages: 1,
+      };
+    }
+  );
 
   const marketCapTimeDataPromise = fetchMarketCapOverTime().catch((error) => {
-    console.error("Error fetching market cap over time:", error)
-    return []
-  })
+    console.error("Error fetching market cap over time:", error);
+    return [];
+  });
 
   const tokenMarketCapsPromise = fetchTokenMarketCaps().catch((error) => {
-    console.error("Error fetching token market caps:", error)
-    return []
-  })
+    console.error("Error fetching token market caps:", error);
+    return [];
+  });
 
   const totalMarketCapPromise = fetchTotalMarketCap().catch((error) => {
-    console.error("Error fetching total market cap:", error)
-    return { latest_data_at: new Date().toISOString(), total_marketcap_usd: 0 }
-  })
+    console.error("Error fetching total market cap:", error);
+    return { latest_data_at: new Date().toISOString(), total_marketcap_usd: 0 };
+  });
 
   // Fetch DASHC data from Dexscreener with error handling
-  const dexscreenerDataPromise = fetchDexscreenerTokenData(dashcoinCA).catch((error) => {
-    console.error("Error fetching Dexscreener data:", error)
-    return null
-  })
+  const dexscreenerDataPromise = fetchDexscreenerTokenData(dashcoinCA).catch(
+    (error) => {
+      console.error("Error fetching Dexscreener data:", error);
+      return null;
+    }
+  );
 
   // Await the promises we need immediately with error handling
-  let marketStats, totalMarketCap, dexscreenerData
+  let marketStats, totalMarketCap, dexscreenerData;
   try {
-    ;[marketStats, totalMarketCap, dexscreenerData] = await Promise.all([
+    [marketStats, totalMarketCap, dexscreenerData] = await Promise.all([
       marketStatsPromise,
       totalMarketCapPromise,
       dexscreenerDataPromise,
-    ])
+    ]);
   } catch (error) {
-    console.error("Error awaiting promises:", error)
+    console.error("Error awaiting promises:", error);
     marketStats = {
       totalMarketCap: 0,
       volume24h: 0,
@@ -144,98 +178,88 @@ export default async function Home() {
       feeEarnings24h: 0,
       lifetimeVolume: 0,
       coinLaunches: 0,
-    }
-    totalMarketCap = { latest_data_at: new Date().toISOString(), total_marketcap_usd: 0 }
-    dexscreenerData = null
+    };
+    totalMarketCap = {
+      latest_data_at: new Date().toISOString(),
+      total_marketcap_usd: 0,
+    };
+    dexscreenerData = null;
   }
 
   // Get information about the Dune data cache with error handling
-  let timeRemaining = 0
-  let lastRefreshTime = new Date(Date.now() - 2 * 60 * 60 * 1000) // Default to 2 hours ago
+  let timeRemaining = 0;
+  let lastRefreshTime = new Date(Date.now() - 2 * 60 * 60 * 1000); // Default to 2 hours ago
 
   try {
-    const refreshInfo = await getTimeUntilNextDuneRefresh()
-    timeRemaining = refreshInfo.timeRemaining
-    lastRefreshTime = refreshInfo.lastRefreshTime
+    const refreshInfo = await getTimeUntilNextDuneRefresh();
+    timeRemaining = refreshInfo.timeRemaining;
+    lastRefreshTime = refreshInfo.lastRefreshTime;
   } catch (error) {
-    console.error("Error getting refresh time info:", error)
+    console.error("Error getting refresh time info:", error);
   }
 
-  const nextRefreshTime = new Date(lastRefreshTime.getTime() + 4 * 60 * 60 * 1000)
+  const nextRefreshTime = new Date(
+    lastRefreshTime.getTime() + 4 * 60 * 60 * 1000
+  );
 
   // Format the refresh times for display
   const formattedLastRefresh = lastRefreshTime.toLocaleString(undefined, {
     dateStyle: "short",
     timeStyle: "medium",
-  })
-  const formattedNextRefresh = nextRefreshTime.toLocaleString()
+  });
+  const formattedNextRefresh = nextRefreshTime.toLocaleString();
 
   // Calculate hours and minutes until next refresh
-  const hoursUntilRefresh = Math.floor(timeRemaining / (60 * 60 * 1000))
-  const minutesUntilRefresh = Math.floor((timeRemaining % (60 * 60 * 1000)) / (60 * 1000))
+  const hoursUntilRefresh = Math.floor(timeRemaining / (60 * 60 * 1000));
+  const minutesUntilRefresh = Math.floor(
+    (timeRemaining % (60 * 60 * 1000)) / (60 * 1000)
+  );
 
   // Format numbers for display with null checks
-  const formattedMarketCap = formatCurrency(totalMarketCap?.total_marketcap_usd || marketStats?.totalMarketCap || 0)
-  const formattedVolume = formatCurrency(marketStats?.volume24h || 0)
-  const formattedFeeEarnings = formatCurrency(marketStats?.feeEarnings24h || 0)
-  const formattedCoinLaunches = (marketStats?.coinLaunches || 0).toLocaleString()
+  const formattedMarketCap = formatCurrency(
+    totalMarketCap?.total_marketcap_usd || marketStats?.totalMarketCap || 0
+  );
+  const formattedVolume = formatCurrency(marketStats?.volume24h || 0);
+  const formattedFeeEarnings = formatCurrency(marketStats?.feeEarnings24h || 0);
+  const formattedCoinLaunches = (marketStats?.coinLaunches || 0).toLocaleString();
 
   // Get DASHC token data from Dexscreener with null checks
-  let dashcPrice = 0
-  let dashcMarketCap = 0
-  let dashcVolume = 0
-  let dashcChange24h = 0
-  let dashcLiquidity = 0
-  const dashcHolders = 0 // Dexscreener doesn't provide holders count
-  let dashcPairAddress = ""
-  let lastUpdated = new Date().toLocaleString()
+  let dashcPrice = 0;
+  let dashcMarketCap = 0;
+  let dashcVolume = 0;
+  let dashcChange24h = 0;
+  let dashcLiquidity = 0;
+  const dashcHolders = 0; // Dexscreener doesn't provide holders count
+  let dashcPairAddress = "";
+  let lastUpdated = new Date().toLocaleString();
 
   // Extract data from Dexscreener response if available
   if (dexscreenerData && dexscreenerData.pairs && dexscreenerData.pairs.length > 0) {
     // Use the first pair (usually the most liquid one)
-    const pair = dexscreenerData.pairs[0]
+    const pair = dexscreenerData.pairs[0];
 
-    dashcPrice = Number(pair.priceUsd || 0)
-    dashcMarketCap = pair.fdv || 0
-    dashcVolume = pair.volume?.h24 || 0
-    dashcChange24h = pair.priceChange?.h24 || 0
-    dashcLiquidity = pair.liquidity?.usd || 0
-    dashcPairAddress = pair.pairAddress || ""
+    dashcPrice = Number(pair.priceUsd || 0);
+    dashcMarketCap = pair.fdv || 0;
+    dashcVolume = pair.volume?.h24 || 0;
+    dashcChange24h = pair.priceChange?.h24 || 0;
+    dashcLiquidity = pair.liquidity?.usd || 0;
+    dashcPairAddress = pair.pairAddress || "";
 
     // If we have a timestamp for the data, use it
     //@ts-ignore
     if (pair.updatedAt) {
-
       //@ts-ignore
       lastUpdated = new Date(pair.updatedAt).toLocaleString(undefined, {
         dateStyle: "short",
         timeStyle: "medium",
-      })
+      });
     }
   }
 
   return (
     <div className="min-h-screen">
-      <header className="container mx-auto py-6 px-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <DashcoinLogo size={56} />
-            <a
-              href={dashcoinTradeLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-dashYellow hover:text-dashYellow-dark font-medium dashcoin-text flex items-center text-lg"
-            >
-              SUPPORT THE PAGE <ExternalLink className="h-4 w-4 ml-1" />
-            </a>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Silent auto refresh component (no visible UI) */}
-            <AdminRefreshButton />
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
+      {/* Use the new Navbar component */}
+      <Navbar dashcoinTradeLink={dashcoinTradeLink} />
 
       <main className="container mx-auto px-4 py-6 space-y-8">
         {/* Hero Section with Frog Soldiers */}
@@ -251,7 +275,9 @@ export default async function Home() {
                 style={{ clipPath: "circle(50%)" }} // This attempts to clip to a circle
               />
             </div>
-            <h1 className="dashcoin-title text-5xl md:text-7xl text-dashYellow">DASHCOIN TRACKER</h1>
+            <h1 className="dashcoin-title text-5xl md:text-7xl text-dashYellow">
+              DASHCOIN TRACKER
+            </h1>
             <div className="w-24 h-24 md:w-32 md:h-32 relative">
               <Image
                 src="/images/frog-soldier.png"
@@ -293,7 +319,11 @@ export default async function Home() {
 
               <div className="text-center">
                 <span className="text-xs opacity-70">24h Change</span>
-                <p className={`font-bold ${dashcChange24h >= 0 ? "text-dashGreen-accent" : "text-dashRed"}`}>
+                <p
+                  className={`font-bold ${
+                    dashcChange24h >= 0 ? "text-dashGreen-accent" : "text-dashRed"
+                  }`}
+                >
                   {dashcChange24h >= 0 ? "+" : ""}
                   {dashcChange24h.toFixed(2)}%
                 </p>
@@ -322,10 +352,11 @@ export default async function Home() {
             <p className="text-xs opacity-60">Dune data last updated: {formattedLastRefresh}</p>
             <p className="text-xs opacity-60">Next Dune refresh: {formattedNextRefresh}</p>
           </div>
-          <p className="text-xl max-w-2xl mx-auto">Your Data Buddy for the Believe Coin Trenches</p>
+          <p className="text-xl max-w-2xl mx-auto">
+            Your Data Buddy for the Believe Coin Trenches
+          </p>
         </div>
 
-        {/* Rest of the code stays the same... */}
         {/* Summary Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <DashcoinCard className="flex flex-col items-center justify-center py-8">
@@ -395,7 +426,9 @@ export default async function Home() {
               <DashcoinCardTitle>Fee Earnings</DashcoinCardTitle>
             </DashcoinCardHeader>
             <DashcoinCardContent>
-              <p className="dashcoin-text text-3xl text-dashYellow">{formattedFeeEarnings}</p>
+              <p className="dashcoin-text text-3xl text-dashYellow">
+                {formattedFeeEarnings}
+              </p>
               <div className="mt-2 pt-2 border-t border-dashGreen-light opacity-50">
                 <p className="text-sm">Estimated at 0.3% of volume</p>
               </div>
@@ -428,12 +461,15 @@ export default async function Home() {
 
         {/* Token Table */}
         <div className="mt-8">
-          <h2 className="dashcoin-text text-3xl text-dashYellow mb-4">Top Tokens by Market Cap</h2>
+          <h2 className="dashcoin-text text-3xl text-dashYellow mb-4">
+            Top Tokens by Market Cap
+          </h2>
           <Suspense
             fallback={
               <DashcoinCard className="p-8 flex items-center justify-center">
                 <p className="text-center">
-                  Loading token data... This may take a moment as we fetch data for the top tokens.
+                  Loading token data... This may take a moment as we fetch data for the
+                  top tokens.
                 </p>
               </DashcoinCard>
             }
@@ -459,5 +495,5 @@ export default async function Home() {
         </div>
       </footer>
     </div>
-  )
+  );
 }

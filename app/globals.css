@@ -33,7 +33,26 @@
     --ring: 48 100% 50%;
 
     --radius: 0.75rem;
+
+      --font-inter: 'Inter', sans-serif;
+    --font-bangers: 'Bangers', cursive;
+    --dashcoin-yellow: #F6BE00;
+    --dashcoin-yellow-dark: #E9B200;
+    --dashcoin-yellow-light: #F9D44C;
+    --dashcoin-green: #0E1E19;
+    --dashcoin-green-dark: #0A150F;
+    --dashcoin-green-light: #1A2C24;
+    --dashcoin-green-accent: #21BB89;
+    --dashcoin-black: #121212;
+  --dashcoin-red: #F05252;
   }
+
+  @layer base {
+  body {
+    @apply bg-dashGreen text-slate-50;
+  }
+}
+
 
   .dark {
     --background: 70 60% 12%; /* darker dashGreen */
@@ -110,4 +129,114 @@
   font-family: "Bangers", system-ui, sans-serif;
   text-shadow: 2px 2px 0 #222222;
   letter-spacing: 1px;
+}
+
+
+
+@layer base {
+  :root {
+    --background: 150 30% 12%;
+    --foreground: 0 0% 98%;
+
+    --muted: 147 30% 15%;
+    --muted-foreground: 240 5% 84%;
+
+    --popover: 150 30% 12%;
+    --popover-foreground: 0 0% 98%;
+
+    --card: 146 31% 10%;
+    --card-foreground: 0 0% 98%;
+
+    --border: 146 31% 15%;
+    --input: 146 31% 15%;
+
+    --primary: 44 100% 48%;
+    --primary-foreground: 0 0% 9%;
+
+    --secondary: 146 31% 15%;
+    --secondary-foreground: 0 0% 98%;
+
+    --accent: 160 61% 43%;
+    --accent-foreground: 0 0% 9%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --ring: 146 31% 15%;
+
+    --radius: 0.5rem;
+    
+    --dashGreen: var(--dashcoin-green);
+    --dashGreen-dark: var(--dashcoin-green-dark);
+    --dashGreen-light: var(--dashcoin-green-light);
+    --dashGreen-accent: var(--dashcoin-green-accent);
+    --dashYellow: var(--dashcoin-yellow);
+    --dashYellow-dark: var(--dashcoin-yellow-dark);
+    --dashYellow-light: var(--dashcoin-yellow-light);
+    --dashBlack: var(--dashcoin-black);
+    --dashRed: var(--dashcoin-red);
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--dashcoin-green-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--dashcoin-green-light);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--dashcoin-yellow-dark);
+}
+
+/* Additional Dashcoin Card Styles */
+.dashcoin-card {
+  border: 1px solid var(--dashcoin-green-light);
+  border-radius: 0.5rem;
+  background-color: var(--dashcoin-green);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Tooltip custom styles */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: var(--dashcoin-green-dark) !important;
+  border: 1px solid var(--dashcoin-green-light) !important;
+  color: var(--dashcoin-yellow) !important;
+}
+
+/* Responsive tables */
+@media (max-width: 768px) {
+  .responsive-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+  }
+}
+
+/* Token hover effect */
+.token-row:hover {
+  background-color: var(--dashcoin-green-light);
+  transition: background-color 0.2s ease;
+}
+
+/* Custom animation for loading states */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.loading-pulse {
+  animation: pulse 1.5s infinite;
 }
