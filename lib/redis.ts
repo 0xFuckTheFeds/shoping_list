@@ -15,7 +15,7 @@ export const CACHE_KEYS = {
 }
 
 // Cache duration in milliseconds (4 hours)
-export const CACHE_DURATION = 4 * 60 * 60 * 1000
+export const CACHE_DURATION = 1 * 60 * 60 * 1000
 
 // Check if KV is available
 const isKvAvailable = typeof kv !== "undefined" && kv !== null

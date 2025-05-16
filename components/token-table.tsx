@@ -61,16 +61,38 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
 
   // Fetch data when page, pageSize, sort field, or sort direction changes
   const fetchData = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const newData = await fetchPaginatedTokens(currentPage, itemsPerPage, sortField, sortDirection)
-      setTokenData(newData)
+      const newData = await fetchPaginatedTokens(
+        currentPage, 
+        itemsPerPage, 
+        sortField, 
+        sortDirection,
+        searchTerm // Pass the search term
+      );
+      setTokenData(newData);
+      // We don't need to filter here anymore as it's handled server-side
+      setFilteredTokens(newData.tokens || []);
     } catch (error) {
-      console.error("Error fetching paginated tokens:", error)
+      console.error("Error fetching paginated tokens:", error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
+  // When search term changes, reset to page 1
+  if (currentPage !== 1) {
+    setCurrentPage(1);
+  } else {
+    // Only fetch if we're already on page 1
+    const timer = setTimeout(() => {
+      fetchData();
+    }, 300); // Debounce for 300ms
+    
+    return () => clearTimeout(timer);
   }
+}, [searchTerm]);
 
   useEffect(() => {
     fetchData()

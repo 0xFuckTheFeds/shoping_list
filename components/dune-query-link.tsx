@@ -7,7 +7,7 @@ interface DuneQueryLinkProps {
 }
 
 export function DuneQueryLink({ queryId, className = "" }: DuneQueryLinkProps) {
-  const duneUrl = `https://dune.com/queries/${queryId}`
+  const duneUrl = `https://dune.com/queries/${queryId}/resutls`
 
   return (
     <Link

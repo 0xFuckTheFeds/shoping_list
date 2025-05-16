@@ -77,7 +77,7 @@ export default function TokenPage({ params }: { params: { symbol: string } }) {
 
         // Store cache information in state
         setDuneLastRefresh(duneCache.lastRefreshTime)
-        setDuneNextRefresh(new Date(duneCache.lastRefreshTime.getTime() + 4 * 60 * 60 * 1000))
+        setDuneNextRefresh(new Date(duneCache.lastRefreshTime.getTime() + 1 * 60 * 60 * 1000))
         setDuneTimeRemaining(duneCache.timeRemaining)
 
         if (dexCache.lastRefreshTime) {

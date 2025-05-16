@@ -108,7 +108,7 @@ export default async function Home() {
   const dashcoinCA = "7gkgsqE2Uip7LUyrqEi8fyLPNSbn7GYu9yFgtxZwYUVa";
   // Dashcoin trade link
   const dashcoinTradeLink =
-    "https://axiom.trade/t/fRfKGCriduzDwSudCwpL7ySCEiboNuryhZDVJtr1a1C/dashc";
+    "https://axiom.trade/meme/Fjq9SmWmtnETAVNbir1eXhrVANi1GDoHEA4nb4tNn7w6/@dashc";
   // Dashcoin X (Twitter) link
   const dashcoinXLink = "https://x.com/dune_dashcoin";
 
@@ -138,10 +138,13 @@ export default async function Home() {
     }
   );
 
-  const marketCapTimeDataPromise = fetchMarketCapOverTime().catch((error) => {
-    console.error("Error fetching market cap over time:", error);
-    return [];
-  });
+
+  // disabled at the moment for saving on API calls
+  // const marketCapTimeDataPromise = fetchMarketCapOverTime().catch((error) => {
+  //   console.error("Error fetching market cap over time:", error);
+  //   return [];
+  // });
+    const marketCapTimeDataPromise = Promise.resolve([]); // Placeholder for now
 
   const tokenMarketCapsPromise = fetchTokenMarketCaps().catch((error) => {
     console.error("Error fetching token market caps:", error);
@@ -188,7 +191,7 @@ export default async function Home() {
 
   // Get information about the Dune data cache with error handling
   let timeRemaining = 0;
-  let lastRefreshTime = new Date(Date.now() - 2 * 60 * 60 * 1000); // Default to 2 hours ago
+  let lastRefreshTime = new Date(Date.now() -  34 * 60 * 1000); // Default to 1 hours ago
 
   try {
     const refreshInfo = await getTimeUntilNextDuneRefresh();
@@ -199,7 +202,7 @@ export default async function Home() {
   }
 
   const nextRefreshTime = new Date(
-    lastRefreshTime.getTime() + 4 * 60 * 60 * 1000
+    lastRefreshTime.getTime() + 1 * 60 * 60 * 1000
   );
 
   // Format the refresh times for display
