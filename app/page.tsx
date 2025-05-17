@@ -54,6 +54,7 @@ const MarketCapPieWrapper = async ({
 }) => {
   try {
     const tokenMarketCaps = await tokenMarketCapsPromise;
+    console.log("------------------------------------token market caps", tokenMarketCaps)
     return <MarketCapPie data={tokenMarketCaps || []} />;
   } catch (error) {
     console.error("Error in MarketCapPieWrapper:", error);
@@ -114,7 +115,6 @@ export default async function Home() {
 
   // Fetch data from Dune with error handling
   const marketStatsPromise = fetchMarketStats().then(data => {
-    console.log("Resolved market stats data:", data);
     return data;
   }).catch((error) => {
     console.error("Error fetching market stats:", error);
@@ -154,7 +154,7 @@ export default async function Home() {
     console.error("Error fetching token market caps:", error);
     return [];
   });
-
+  
   const totalMarketCapPromise = fetchTotalMarketCap().catch((error) => {
     console.error("Error fetching total market cap:", error);
     return { latest_data_at: new Date().toISOString(), total_marketcap_usd: 0 };

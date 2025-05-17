@@ -878,13 +878,28 @@ export async function fetchMarketCapOverTime(): Promise<MarketCapTimeData[]> {
  */
 export async function fetchTokenMarketCaps(): Promise<TokenMarketCapData[]> {
   try {
-    // Check if data exists in cache
-    const cachedData = await getFromCache<TokenMarketCapData[]>(
-      CACHE_KEYS.TOKEN_MARKET_CAPS
-    );
-    if (cachedData && cachedData.length > 0) {
-      return cachedData;
+
+    let lastRefreshTime = new Date(Date.now() -  34 * 60 * 1000); // Default to 1 hours ago
+
+    try {
+      const refreshInfo = await getTimeUntilNextDuneRefresh();
+      lastRefreshTime = refreshInfo.lastRefreshTime;
+
+      console.log("------------------------->", lastRefreshTime)
+    } catch (error) {
+      console.error("Error getting refresh time info:", error);
     }
+
+    if(Date.now() - lastRefreshTime.getTime() < 1 * 60 * 60 *1000){
+      const cachedData = await getFromCache<TokenMarketCapData[]>(
+        CACHE_KEYS.TOKEN_MARKET_CAPS
+      );
+      if (cachedData && cachedData.length > 0) {
+        return cachedData;
+      }
+    }
+    // Check if data exists in cache
+    
 
     // Use mock data in preview environments
     if (IS_PREVIEW) {
@@ -896,6 +911,7 @@ export async function fetchTokenMarketCaps(): Promise<TokenMarketCapData[]> {
 
     const result = await fetchDuneQueryResults(5140151);
 
+    console.log("----------------------------------------->result", result)
     if (result && result.rows && result.rows.length > 0) {
       // Get the current date for all entries
       const currentDate = new Date().toISOString().split("T")[0];
