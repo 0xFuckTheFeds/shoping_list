@@ -193,7 +193,6 @@ export default async function Home() {
     dexscreenerData = null;
   }
 
-  console.log("marketstats---------------------------------->", marketStats)
 
   // Get information about the Dune data cache with error handling
   let timeRemaining = 0;
@@ -217,6 +216,7 @@ export default async function Home() {
     timeStyle: "medium",
   });
   const formattedNextRefresh = nextRefreshTime.toLocaleString();
+
 
   // Calculate hours and minutes until next refresh
   const hoursUntilRefresh = Math.floor(timeRemaining / (60 * 60 * 1000));

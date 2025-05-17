@@ -1106,7 +1106,6 @@ export async function fetchMarketStats(): Promise<MarketStats> {
         coinLaunches,
       };
 
-      
       // Store in cache
       
       const now = Date.now();
