@@ -21,6 +21,7 @@ import {
   releaseRefreshLock,
   CACHE_DURATION,
 } from "@/lib/redis";
+import { cache } from "react";
 
 // Check if we're in a preview environment or if DUNE_API_KEY is not set
 const IS_PREVIEW =
@@ -1053,9 +1054,9 @@ export async function fetchMarketStats(): Promise<MarketStats> {
     } catch (error) {
       console.error("Error getting refresh time info:", error);
     }
-
-    if ( (Date.now() - lastRefreshTime.getTime()) > 1 * 60 * 60 * 1000) {
+    if ( (Date.now() - lastRefreshTime.getTime()) < 1 * 60 * 60 * 1000) {
       const cachedData = await getFromCache<MarketStats>(CACHE_KEYS.MARKET_STATS);
+      console.log("It's not time to refresh, fetching data from cache HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH", cachedData);
       if (cachedData && cachedData.totalMarketCap !== undefined) {
         return cachedData;
       }
@@ -1103,15 +1104,17 @@ export async function fetchMarketStats(): Promise<MarketStats> {
       };
 
       // Store in cache
-      console.log(data, "MARKET STATS")
+      console.log(data, "It's time to fetch data from dune and storing this data to cach HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH")
       await setInCache(CACHE_KEYS.MARKET_STATS, data);
-      console.log(await getFromCache<MarketStats>(CACHE_KEYS.MARKET_STATS), "MARKET STATS CACHE")
+      lastRefreshTime = new Date(Date.now());
+      console.log("MARKET STATS CACHE----------------------->", await getFromCache<MarketStats>(CACHE_KEYS.MARKET_STATS))
       return data;
     }
 
     console.warn(
       "No token data available to calculate market stats, using default values"
     );
+
     return {
       totalMarketCap: 0,
       volume24h: 0,
