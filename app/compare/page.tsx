@@ -41,6 +41,8 @@ export default function ComparePage() {
 
   const [token1Address, setToken1Address] = useState("");
   const [token2Address, setToken2Address] = useState("");
+  const [token1Name, setToken1Name] = useState("");
+  const [token2Name, setToken2Name] = useState("");
   const [isComparing, setIsComparing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [allTokens, setAllTokens] = useState<TokenData[]>([]);
@@ -128,12 +130,18 @@ export default function ComparePage() {
     setError(null);
     
     try {
-      // Find tokens by address
-      const token1 = allTokens.find(t => t.token.toLowerCase() === token1Address.toLowerCase());
-      const token2 = allTokens.find(t => t.token.toLowerCase() === token2Address.toLowerCase());
+      // Find tokens by name (case insensitive)
+      const token1 = allTokens.find(t => 
+        t.name.toLowerCase() === token1Name.toLowerCase() || 
+        t.symbol.toLowerCase() === token1Name.toLowerCase()
+      );
+      const token2 = allTokens.find(t => 
+        t.name.toLowerCase() === token2Name.toLowerCase() || 
+        t.symbol.toLowerCase() === token2Name.toLowerCase()
+      );
       
       if (!token1 || !token2) {
-        setError('One or both token addresses not found. Please check and try again.');
+        setError('One or both tokens not found. Please check name or symbol and try again.');
         setIsLoading(false);
         return;
       }
@@ -190,30 +198,30 @@ export default function ComparePage() {
         {/* Token Input Section */}
         <DashcoinCard className="mb-8">
           <DashcoinCardHeader>
-            <DashcoinCardTitle>Enter Token Addresses to Compare</DashcoinCardTitle>
+            <DashcoinCardTitle>Enter Token Names to Compare</DashcoinCardTitle>
           </DashcoinCardHeader>
           <DashcoinCardContent>
             <div className="flex flex-col md:flex-row gap-4 items-end">
               <div className="flex-1">
-                <label htmlFor="token1" className="block mb-2 text-sm font-medium">Token 1 Address</label>
+                <label htmlFor="token1" className="block mb-2 text-sm font-medium">Token 1 Name</label>
                 <input 
                   type="text" 
                   id="token1" 
-                  value={token1Address}
-                  onChange={(e) => handleTokenSearch(e.target.value, setToken1Address)}
+                  value={token1Name}
+                  onChange={(e) => handleTokenSearch(e.target.value, setToken1Name)}
                   className="w-full px-4 py-3 rounded-md bg-dashGreen-dark border border-dashGreen-light focus:border-dashYellow focus:outline-none"
-                  placeholder="Enter contract address"
+                  placeholder="Enter token name or symbol"
                 />
               </div>
               <div className="flex-1">
-                <label htmlFor="token2" className="block mb-2 text-sm font-medium">Token 2 Address</label>
+                <label htmlFor="token2" className="block mb-2 text-sm font-medium">Token 2 Name</label>
                 <input 
                   type="text" 
                   id="token2" 
-                  value={token2Address}
-                  onChange={(e) => handleTokenSearch(e.target.value, setToken2Address)}
+                  value={token2Name}
+                  onChange={(e) => handleTokenSearch(e.target.value, setToken2Name)}
                   className="w-full px-4 py-3 rounded-md bg-dashGreen-dark border border-dashGreen-light focus:border-dashYellow focus:outline-none"
-                  placeholder="Enter contract address"
+                  placeholder="Enter token name or symbol"
                 />
               </div>
               <Button 
@@ -234,7 +242,7 @@ export default function ComparePage() {
             )}
             <p className="mt-4 text-sm opacity-70 flex items-center gap-2">
               <InfoIcon className="h-4 w-4" />
-              Enter the full token addresses to compare metrics
+              Enter the token names or symbols to compare metrics
             </p>
           </DashcoinCardContent>
         </DashcoinCard>
