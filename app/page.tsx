@@ -54,7 +54,6 @@ const MarketCapPieWrapper = async ({
 }) => {
   try {
     const tokenMarketCaps = await tokenMarketCapsPromise;
-    console.log("------------------------------------token market caps", tokenMarketCaps)
     return <MarketCapPie data={tokenMarketCaps || []} />;
   } catch (error) {
     console.error("Error in MarketCapPieWrapper:", error);

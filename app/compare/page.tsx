@@ -1,27 +1,36 @@
 // app/compare/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/navbar";
 import { DashcoinCard, DashcoinCardContent, DashcoinCardHeader, DashcoinCardTitle } from "@/components/ui/dashcoin-card";
 import { Button } from "@/components/ui/button";
-import { Twitter, BarChart2, PieChart, ArrowRight, InfoIcon } from "lucide-react";
+import { Twitter, BarChart2, PieChart, ArrowRight, InfoIcon, Loader2 } from "lucide-react";
 import { DashcoinLogo } from "@/components/dashcoin-logo";
 
 // Since this is a client component, we need to manually import these
-// In a real app, you would fetch this data from your API
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart as RechartsePieChart, Pie, Cell } from 'recharts';
 
 interface TokenData {
+  token: string;          // Address
+  name: string;
+  symbol: string;
+  marketCap: number;      // market_cap_usd from the fetch function
+  num_holders: number;    // Using num_holders from the fetch function
+  volume24h: number;      // vol_usd from the fetch function
+  first_trade_time: string; // Using this as launch date
+  marketcapgrowthperday: number; // Will calculate this
+}
+
+interface ComparisonTokenData {
   address: string;
   name: string;
   symbol: string;
   marketCap: number;
   holders: number;
-  price: number;
   volume24h: number;
-  liquidity: number;
   launchDate: string;
+  marketcapgrowthperday: number;
 }
 
 export default function ComparePage() {
@@ -33,12 +42,15 @@ export default function ComparePage() {
   const [token1Address, setToken1Address] = useState("");
   const [token2Address, setToken2Address] = useState("");
   const [isComparing, setIsComparing] = useState(false);
-  const [comparisonData, setComparisonData] = useState<{token1: TokenData | null, token2: TokenData | null}>({
+  const [isLoading, setIsLoading] = useState(false);
+  const [allTokens, setAllTokens] = useState<TokenData[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [comparisonData, setComparisonData] = useState<{token1: ComparisonTokenData | null, token2: ComparisonTokenData | null}>({
     token1: null,
     token2: null
   });
 
-  // Mock data for demonstration
+  // Mock data for fallback if fetch fails
   const mockComparisonData = {
     token1: {
       address: "7gkgsqE2Uip7LUyrqEi8fyLPNSbn7GYu9yFgtxZwYUVa",
@@ -46,10 +58,9 @@ export default function ComparePage() {
       symbol: "DASHC",
       marketCap: 42500000,
       holders: 12850,
-      price: 0.00075,
       volume24h: 3200000,
-      liquidity: 2500000,
-      launchDate: "2024-02-15"
+      launchDate: "2024-02-15",
+      marketcapgrowthperday: 15646000
     },
     token2: {
       address: "8JUjWjGgT5DNhfxRm9ZdQbVGPeYvKgxkQzeQN9QNBGz7",
@@ -57,19 +68,96 @@ export default function ComparePage() {
       symbol: "SMPL",
       marketCap: 12000000,
       holders: 5420,
-      price: 0.00025,
       volume24h: 950000,
-      liquidity: 850000,
-      launchDate: "2024-04-01"
+      launchDate: "2024-04-01",
+      marketcapgrowthperday: 3243000
     }
+  };
+
+  // Fetch all tokens on component mount
+  useEffect(() => {
+    async function fetchTokens() {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/tokens');
+        if (!response.ok) {
+          throw new Error('Failed to fetch tokens');
+        }
+        const tokens = await response.json();
+        setAllTokens(tokens);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching tokens:', err);
+        setError('Failed to load token data. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchTokens();
+  }, []);
+
+  // Calculate marketcap growth per day
+  const calculateMarketCapGrowthPerDay = (marketCap: number, launchDate: string): number => {
+    const creationDate = new Date(launchDate);
+    const today = new Date();
+    const differenceInTime = today.getTime() - creationDate.getTime();
+    const differenceInDays = Math.max(1, Math.floor(differenceInTime / (1000 * 3600 * 24)));
+    return marketCap / differenceInDays;
+  };
+
+  // Convert TokenData to ComparisonTokenData
+  const convertTokenData = (token: TokenData): ComparisonTokenData => {
+    const marketcapgrowthperday = calculateMarketCapGrowthPerDay(token.marketCap, token.first_trade_time);
+    
+    return {
+      address: token.token,
+      name: token.name,
+      symbol: token.symbol,
+      marketCap: token.marketCap,
+      holders: token.num_holders,
+      volume24h: token.volume24h,
+      launchDate: token.first_trade_time,
+      marketcapgrowthperday
+    };
   };
 
   // Function to handle comparison
   const handleCompare = () => {
-    // Here you would normally fetch data using the token addresses
-    // For demonstration, we'll use mock data
-    setComparisonData(mockComparisonData);
-    setIsComparing(true);
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Find tokens by address
+      const token1 = allTokens.find(t => t.token.toLowerCase() === token1Address.toLowerCase());
+      const token2 = allTokens.find(t => t.token.toLowerCase() === token2Address.toLowerCase());
+      
+      if (!token1 || !token2) {
+        setError('One or both token addresses not found. Please check and try again.');
+        setIsLoading(false);
+        return;
+      }
+      
+      // Convert to comparison format
+      const token1Data = convertTokenData(token1);
+      const token2Data = convertTokenData(token2);
+      
+      setComparisonData({
+        token1: token1Data,
+        token2: token2Data
+      });
+      setIsComparing(true);
+    } catch (err) {
+      console.error('Error during comparison:', err);
+      setError('An error occurred during comparison. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Function to implement search suggestions
+  const handleTokenSearch = (input: string, setter: React.Dispatch<React.SetStateAction<string>>) => {
+    setter(input);
   };
 
   // Prepare data for the bar chart comparison
@@ -85,15 +173,6 @@ export default function ComparePage() {
       [comparisonData.token2?.symbol || 'Token 2']: comparisonData.token2?.holders || 0,
     },
   ];
-
-  // Prepare data for what-if market cap scenario
-  const marketCapScenarioData = comparisonData.token1 && comparisonData.token2 ? [
-    { name: `${comparisonData.token1.symbol} Current Price`, value: comparisonData.token1.price },
-    { 
-      name: `${comparisonData.token1.symbol} at ${comparisonData.token2.symbol}'s Market Cap`, 
-      value: (comparisonData.token2.marketCap / (comparisonData.token1.marketCap / comparisonData.token1.price))
-    }
-  ] : [];
 
   // Colors for charts
   const COLORS = ['#F6BE00', '#F05252'];
@@ -121,7 +200,7 @@ export default function ComparePage() {
                   type="text" 
                   id="token1" 
                   value={token1Address}
-                  onChange={(e) => setToken1Address(e.target.value)}
+                  onChange={(e) => handleTokenSearch(e.target.value, setToken1Address)}
                   className="w-full px-4 py-3 rounded-md bg-dashGreen-dark border border-dashGreen-light focus:border-dashYellow focus:outline-none"
                   placeholder="Enter contract address"
                 />
@@ -132,7 +211,7 @@ export default function ComparePage() {
                   type="text" 
                   id="token2" 
                   value={token2Address}
-                  onChange={(e) => setToken2Address(e.target.value)}
+                  onChange={(e) => handleTokenSearch(e.target.value, setToken2Address)}
                   className="w-full px-4 py-3 rounded-md bg-dashGreen-dark border border-dashGreen-light focus:border-dashYellow focus:outline-none"
                   placeholder="Enter contract address"
                 />
@@ -140,13 +219,22 @@ export default function ComparePage() {
               <Button 
                 onClick={handleCompare}
                 className="bg-dashYellow text-dashBlack hover:bg-dashYellow-dark py-6 px-8"
+                disabled={isLoading}
               >
-                Compare
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading...
+                  </>
+                ) : 'Compare'}
               </Button>
             </div>
+            {error && (
+              <p className="mt-4 text-sm text-red-500">{error}</p>
+            )}
             <p className="mt-4 text-sm opacity-70 flex items-center gap-2">
               <InfoIcon className="h-4 w-4" />
-              For demonstration purposes, clicking Compare will show sample data
+              Enter the full token addresses to compare metrics
             </p>
           </DashcoinCardContent>
         </DashcoinCard>
@@ -249,67 +337,6 @@ export default function ComparePage() {
               </DashcoinCard>
             </div>
 
-            {/* Market Cap What-If Scenario */}
-            <DashcoinCard className="mb-8">
-              <DashcoinCardHeader>
-                <DashcoinCardTitle className="flex items-center gap-2">
-                  <PieChart className="h-5 w-5" />
-                  What If {comparisonData.token1.symbol} Had {comparisonData.token2.symbol}'s Market Cap?
-                </DashcoinCardTitle>
-              </DashcoinCardHeader>
-              <DashcoinCardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  <div className="md:col-span-1">
-                    <div className="p-6 rounded-md bg-dashGreen-dark h-full flex flex-col justify-center">
-                      <h3 className="text-lg mb-6 text-center">Price Comparison</h3>
-                      
-                      <div className="space-y-6">
-                        <div>
-                          <p className="text-sm opacity-70">Current {comparisonData.token1.symbol} Price</p>
-                          <p className="text-2xl text-dashYellow">${comparisonData.token1.price.toFixed(8)}</p>
-                        </div>
-                        
-                        <div>
-                          <p className="text-sm opacity-70">Potential {comparisonData.token1.symbol} Price at {comparisonData.token2.symbol}'s Market Cap</p>
-                          <p className="text-2xl text-dashYellow">${(comparisonData.token2.marketCap / (comparisonData.token1.marketCap / comparisonData.token1.price)).toFixed(8)}</p>
-                        </div>
-                        
-                        <div>
-                          <p className="text-sm opacity-70">Potential Gain/Loss</p>
-                          <p className={`text-2xl ${(comparisonData.token2.marketCap > comparisonData.token1.marketCap) ? 'text-green-500' : 'text-red-500'}`}>
-                            {((comparisonData.token2.marketCap / comparisonData.token1.marketCap) * 100 - 100).toFixed(2)}%
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="md:col-span-2 h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RechartsePieChart>
-                        <Pie
-                          data={marketCapScenarioData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {marketCapScenarioData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={(value) => `$${Number(value).toFixed(8)}`} />
-                        <Legend />
-                      </RechartsePieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              </DashcoinCardContent>
-            </DashcoinCard>
-
             {/* Full Comparison Table */}
             <DashcoinCard>
               <DashcoinCardHeader>
@@ -328,20 +355,11 @@ export default function ComparePage() {
                     </thead>
                     <tbody>
                       <tr className="border-b border-dashGreen-light">
-                        <td className="py-3 px-4">Price</td>
-                        <td className="text-right py-3 px-4">${comparisonData.token1.price.toFixed(8)}</td>
-                        <td className="text-right py-3 px-4">${comparisonData.token2.price.toFixed(8)}</td>
-                        <td className={`text-right py-3 px-4 ${comparisonData.token1.price > comparisonData.token2.price ? 'text-green-500' : 'text-red-500'}`}>
-                          {((comparisonData.token1.price / comparisonData.token2.price - 1) * 100).toFixed(2)}%
-                        </td>
-                      </tr>
-                      
-                      <tr className="border-b border-dashGreen-light">
                         <td className="py-3 px-4">Market Cap</td>
                         <td className="text-right py-3 px-4">${comparisonData.token1.marketCap.toLocaleString()}</td>
                         <td className="text-right py-3 px-4">${comparisonData.token2.marketCap.toLocaleString()}</td>
                         <td className={`text-right py-3 px-4 ${comparisonData.token1.marketCap > comparisonData.token2.marketCap ? 'text-green-500' : 'text-red-500'}`}>
-                          {((comparisonData.token1.marketCap / comparisonData.token2.marketCap - 1) * 100).toFixed(2)}%
+                          {comparisonData.token2.marketCap !== 0 ? ((comparisonData.token1.marketCap / comparisonData.token2.marketCap - 1) * 100).toFixed(2) : "N/A"}%
                         </td>
                       </tr>
                       
@@ -350,7 +368,7 @@ export default function ComparePage() {
                         <td className="text-right py-3 px-4">{comparisonData.token1.holders.toLocaleString()}</td>
                         <td className="text-right py-3 px-4">{comparisonData.token2.holders.toLocaleString()}</td>
                         <td className={`text-right py-3 px-4 ${comparisonData.token1.holders > comparisonData.token2.holders ? 'text-green-500' : 'text-red-500'}`}>
-                          {((comparisonData.token1.holders / comparisonData.token2.holders - 1) * 100).toFixed(2)}%
+                          {comparisonData.token2.holders !== 0 ? ((comparisonData.token1.holders / comparisonData.token2.holders - 1) * 100).toFixed(2) : "N/A"}%
                         </td>
                       </tr>
                       
@@ -359,20 +377,11 @@ export default function ComparePage() {
                         <td className="text-right py-3 px-4">${comparisonData.token1.volume24h.toLocaleString()}</td>
                         <td className="text-right py-3 px-4">${comparisonData.token2.volume24h.toLocaleString()}</td>
                         <td className={`text-right py-3 px-4 ${comparisonData.token1.volume24h > comparisonData.token2.volume24h ? 'text-green-500' : 'text-red-500'}`}>
-                          {((comparisonData.token1.volume24h / comparisonData.token2.volume24h - 1) * 100).toFixed(2)}%
+                          {comparisonData.token2.volume24h !== 0 ? ((comparisonData.token1.volume24h / comparisonData.token2.volume24h - 1) * 100).toFixed(2) : "N/A"}%
                         </td>
                       </tr>
                       
                       <tr className="border-b border-dashGreen-light">
-                        <td className="py-3 px-4">Liquidity</td>
-                        <td className="text-right py-3 px-4">${comparisonData.token1.liquidity.toLocaleString()}</td>
-                        <td className="text-right py-3 px-4">${comparisonData.token2.liquidity.toLocaleString()}</td>
-                        <td className={`text-right py-3 px-4 ${comparisonData.token1.liquidity > comparisonData.token2.liquidity ? 'text-green-500' : 'text-red-500'}`}>
-                          {((comparisonData.token1.liquidity / comparisonData.token2.liquidity - 1) * 100).toFixed(2)}%
-                        </td>
-                      </tr>
-                      
-                      <tr>
                         <td className="py-3 px-4">Launch Date</td>
                         <td className="text-right py-3 px-4">{new Date(comparisonData.token1.launchDate).toLocaleDateString()}</td>
                         <td className="text-right py-3 px-4">{new Date(comparisonData.token2.launchDate).toLocaleDateString()}</td>
@@ -384,6 +393,15 @@ export default function ComparePage() {
                               (1000 * 60 * 60 * 24)
                             )
                           )} days
+                        </td>
+                      </tr>
+
+                      <tr className="border-t border-dashGreen-light">
+                        <td className="py-3 px-4">MarketCap Growth Per Day</td>
+                        <td className="text-right py-3 px-4">${comparisonData.token1.marketcapgrowthperday.toLocaleString()}</td>
+                        <td className="text-right py-3 px-4">${comparisonData.token2.marketcapgrowthperday.toLocaleString()}</td>
+                        <td className={`text-right py-3 px-4 ${comparisonData.token1.marketcapgrowthperday > comparisonData.token2.marketcapgrowthperday ? 'text-green-500' : 'text-red-500'}`}>
+                          {comparisonData.token2.marketcapgrowthperday !== 0 ? ((comparisonData.token1.marketcapgrowthperday / comparisonData.token2.marketcapgrowthperday - 1) * 100).toFixed(2) : "N/A"}%
                         </td>
                       </tr>
                     </tbody>

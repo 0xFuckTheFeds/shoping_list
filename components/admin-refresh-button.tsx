@@ -30,8 +30,6 @@ export function AdminRefreshButton({ className = "" }: AdminRefreshButtonProps) 
           },
         })
 
-        console.log("Response from cache clear--------------------------------->", response)
-
         if (!response.ok) {
           throw new Error("Failed to clear cache")
         }

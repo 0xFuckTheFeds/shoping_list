@@ -13,7 +13,6 @@ export function AutoRefreshComponent({ refreshInterval = 1 * 60 * 60 * 1000 }) {
     setIsRefreshing(true)
     
     try {
-      console.log("Refreshing data...")
       await forceDuneDataRefresh()
     } catch (error) {
       console.error("Error refreshing data:", error)

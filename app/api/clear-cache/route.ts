@@ -7,7 +7,6 @@ const API_SECRET_KEY = process.env.API_SECRET_KEY || "default-secret-key-change-
 export async function GET(request: NextRequest) {
   // Check for secret key to prevent unauthorized cache clearing
   const authHeader = request.headers.get("authorization")
-  console.log("Authorization header:----------------------------->", authHeader)
   if (!authHeader || authHeader !== `Bearer ${API_SECRET_KEY}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }

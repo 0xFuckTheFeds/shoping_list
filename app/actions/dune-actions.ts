@@ -661,7 +661,7 @@ async function fetchDuneQueryResults(queryId: number, limit = 1000) {
  * Fetch all token data directly from Dune query 5129959 (Pie Chart of Believe Coins by Market Cap)
  * This is used internally by the paginated function
  */
-async function fetchAllTokensFromDune(): Promise<TokenData[]> {
+export async function fetchAllTokensFromDune(): Promise<TokenData[]> {
   try {
 
     let lastRefreshTime = new Date(Date.now() -  34 * 60 * 1000); // Default to 1 hours ago
@@ -911,7 +911,6 @@ export async function fetchTokenMarketCaps(): Promise<TokenMarketCapData[]> {
 
     const result = await fetchDuneQueryResults(5140151);
 
-    console.log("----------------------------------------->result", result)
     if (result && result.rows && result.rows.length > 0) {
       // Get the current date for all entries
       const currentDate = new Date().toISOString().split("T")[0];
@@ -1068,7 +1067,6 @@ export async function fetchMarketStats(): Promise<MarketStats> {
       const refreshInfo = await getTimeUntilNextDuneRefresh();
       lastRefreshTime = refreshInfo.lastRefreshTime;
 
-      console.log("------------------------->", lastRefreshTime)
     } catch (error) {
       console.error("Error getting refresh time info:", error);
     }
