@@ -1107,7 +1107,6 @@ export async function fetchMarketStats(): Promise<MarketStats> {
       };
 
       // Store in cache
-      
       const now = Date.now();
       const nextRefresh = now + CACHE_DURATION;
 
