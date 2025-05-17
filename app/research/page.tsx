@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Navbar } from "@/components/navbar";
 import { DashcoinCard, DashcoinCardContent, DashcoinCardHeader, DashcoinCardTitle } from "@/components/ui/dashcoin-card";
 import { Button } from "@/components/ui/button";
@@ -32,20 +32,56 @@ export default function ResearchPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPostId, setSelectedPostId] = useState("1");
   const [currentPage, setCurrentPage] = useState(1);
-  const postsPerPage = 1; // Show one post at a time for pagination
+  const contentRef = useRef(null);
   
   // Function to filter posts based on search query
-  const filteredPosts = researchPosts.filter((post: any) => 
+  const filteredPosts = researchPosts.filter((post) => 
     post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     post.coinName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     post.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
   // Get the selected post
-  const selectedPost = researchPosts.find((post: any) => post.id === selectedPostId) || researchPosts[0];
+  const selectedPost = researchPosts.find((post) => post.id === selectedPostId) || researchPosts[0];
 
-  // Handle pagination
-  const totalPages = Math.ceil(selectedPost.content.length / 2000); // Estimate pages based on content length
+  // Calculate content per page based on content length and viewport
+  const calculateWordsPerPage = () => {
+    // Average words per page based on content area size
+    // This is a reasonable estimate that keeps content chunks manageable
+    return 500; // Adjust this value based on your content density and font size
+  };
+
+  // Paginate content based on words rather than characters for better readability
+  interface PaginateContentParams {
+    content: string;
+    page: number;
+    wordsPerPage: number;
+  }
+
+  const paginateContent = (
+    content: string,
+    page: number,
+    wordsPerPage: number
+  ): string => {
+    // Split content into words
+    const allWords: string[] = content.split(/\s+/);
+    const totalWords: number = allWords.length;
+    
+    // Calculate start and end indices
+    const startIndex: number = (page - 1) * wordsPerPage;
+    const endIndex: number = Math.min(startIndex + wordsPerPage, totalWords);
+    
+    // Get subset of words for current page
+    const pageWords: string[] = allWords.slice(startIndex, endIndex);
+    
+    // Join words back together with spaces
+    return pageWords.join(' ');
+  };
+
+  // Handle pagination with improved content chunking
+  const wordsPerPage = calculateWordsPerPage();
+  const totalWords = selectedPost.content.split(/\s+/).length;
+  const totalPages = Math.ceil(totalWords / wordsPerPage);
   
   const handleNextPage = () => {
     if (currentPage < totalPages) {
@@ -80,8 +116,8 @@ export default function ResearchPage() {
       const availableHeight = viewportHeight - navbarHeight - headerHeight - footerHeight - 48; // 48px for padding
       
       // Set the height for the content containers
-      document.querySelectorAll('.content-container').forEach((el: any) => {
-        el.style.height = `${availableHeight}px`;
+      document.querySelectorAll('.content-container').forEach((el) => {
+        (el as HTMLElement).style.height = `${availableHeight}px`;
       });
     };
     
@@ -92,6 +128,11 @@ export default function ResearchPage() {
       window.removeEventListener('resize', setContainerHeights);
     };
   }, []);
+
+  // Reset page number when post changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedPostId]);
 
   return (
     <div className="min-h-screen bg-dashGreen-darkest relative overflow-x-hidden">
@@ -143,7 +184,7 @@ export default function ResearchPage() {
               </DashcoinCardHeader>
               <DashcoinCardContent className="h-full overflow-y-auto no-scrollbar">
                 <div className="space-y-4 pr-2">
-                  {filteredPosts.map((post: any) => (
+                  {filteredPosts.map((post) => (
                     <div 
                       key={post.id} 
                       className={`p-3 rounded-md cursor-pointer border transition-all duration-300 transform hover:scale-[1.02] 
@@ -183,8 +224,8 @@ export default function ResearchPage() {
               <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-dashYellow/30 via-transparent to-dashYellow/30"></div>
               
               {/* Header section with metadata and image */}
-              <div className="flex flex-col">
-                <DashcoinCardHeader className="flex justify-between items-start border-b border-dashGreen-light pb-4">
+              <div className="flex flex-col h-full">
+                <DashcoinCardHeader className="flex justify-between items-start border-b border-dashGreen-light pb-4 flex-shrink-0">
                   {/* Left side: Text content */}
                   <div className="flex flex-col flex-grow mr-4">
                     <div className="flex items-center gap-3 mb-4">
@@ -222,15 +263,18 @@ export default function ResearchPage() {
                 </DashcoinCardHeader>
                 
                 {/* Content section with scroll */}
-                <DashcoinCardContent className="h-full overflow-y-auto no-scrollbar">
+                <DashcoinCardContent className="flex-grow overflow-y-auto no-scrollbar flex flex-col">
                   <div 
-                    className="prose prose-invert max-w-none prose-headings:text-dashYellow prose-a:text-dashYellow-light prose-img:rounded-lg prose-img:my-8 prose-img:shadow-lg"
-                    dangerouslySetInnerHTML={{ __html: paginateContent(selectedPost.content, currentPage, 2000) }}
+                    ref={contentRef}
+                    className="prose prose-invert max-w-none prose-headings:text-dashYellow prose-a:text-dashYellow-light prose-img:rounded-lg prose-img:my-8 prose-img:shadow-lg flex-grow"
+                    dangerouslySetInnerHTML={{ 
+                      __html: paginateContent(selectedPost.content, currentPage, wordsPerPage) 
+                    }}
                   />
                   
                   {/* Pagination controls */}
                   {totalPages > 1 && (
-                    <div className="flex justify-between items-center mt-8 border-t border-dashGreen-light pt-4">
+                    <div className="flex justify-between items-center mt-8 border-t border-dashGreen-light pt-4 flex-shrink-0">
                       <Button 
                         variant="outline" 
                         className={`border-dashYellow text-dashYellow hover:bg-dashYellow hover:text-dashGreen-darkest transition-all duration-300 ${currentPage <= 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -241,22 +285,102 @@ export default function ResearchPage() {
                       </Button>
                       
                       <div className="flex items-center space-x-1">
-                        {Array.from({ length: totalPages }, (_, i) => (
-                          <button
-                            key={i}
-                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
-                              currentPage === i + 1
-                                ? 'bg-dashYellow text-dashGreen-darkest font-bold'
-                                : 'text-dashYellow-light hover:bg-dashGreen-dark'
-                            }`}
-                            onClick={() => {
-                              setCurrentPage(i + 1);
-                              document.getElementById('content-top')?.scrollIntoView({ behavior: 'smooth' });
-                            }}
-                          >
-                            {i + 1}
-                          </button>
-                        ))}
+                        {/* Pagination numbers with intelligent limiting */}
+                        {totalPages <= 5 ? (
+                          // Show all pages if 5 or fewer
+                          Array.from({ length: totalPages }, (_, i) => (
+                            <button
+                              key={i}
+                              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+                                currentPage === i + 1
+                                  ? 'bg-dashYellow text-dashGreen-darkest font-bold'
+                                  : 'text-dashYellow-light hover:bg-dashGreen-dark'
+                              }`}
+                              onClick={() => {
+                                setCurrentPage(i + 1);
+                                document.getElementById('content-top')?.scrollIntoView({ behavior: 'smooth' });
+                              }}
+                            >
+                              {i + 1}
+                            </button>
+                          ))
+                        ) : (
+                          // Show limited pages with ellipsis for larger page counts
+                          <>
+                            {/* First page */}
+                            <button
+                              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+                                currentPage === 1
+                                  ? 'bg-dashYellow text-dashGreen-darkest font-bold'
+                                  : 'text-dashYellow-light hover:bg-dashGreen-dark'
+                              }`}
+                              onClick={() => {
+                                setCurrentPage(1);
+                                document.getElementById('content-top')?.scrollIntoView({ behavior: 'smooth' });
+                              }}
+                            >
+                              1
+                            </button>
+                            
+                            {/* Ellipsis or second page */}
+                            {currentPage > 3 && (
+                              <span className="text-dashYellow-light px-1">...</span>
+                            )}
+                            
+                            {/* Pages around current page */}
+                            {Array.from(
+                              { length: Math.min(3, totalPages - 2) },
+                              (_, i) => {
+                                const pageNum = Math.max(
+                                  2,
+                                  Math.min(
+                                    currentPage - 1 + i,
+                                    totalPages - 1
+                                  )
+                                );
+                                return (
+                                  pageNum > 1 &&
+                                  pageNum < totalPages && (
+                                    <button
+                                      key={pageNum}
+                                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+                                        currentPage === pageNum
+                                          ? 'bg-dashYellow text-dashGreen-darkest font-bold'
+                                          : 'text-dashYellow-light hover:bg-dashGreen-dark'
+                                      }`}
+                                      onClick={() => {
+                                        setCurrentPage(pageNum);
+                                        document.getElementById('content-top')?.scrollIntoView({ behavior: 'smooth' });
+                                      }}
+                                    >
+                                      {pageNum}
+                                    </button>
+                                  )
+                                );
+                              }
+                            )}
+                            
+                            {/* Ellipsis or second-to-last page */}
+                            {currentPage < totalPages - 2 && (
+                              <span className="text-dashYellow-light px-1">...</span>
+                            )}
+                            
+                            {/* Last page */}
+                            <button
+                              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+                                currentPage === totalPages
+                                  ? 'bg-dashYellow text-dashGreen-darkest font-bold'
+                                  : 'text-dashYellow-light hover:bg-dashGreen-dark'
+                              }`}
+                              onClick={() => {
+                                setCurrentPage(totalPages);
+                                document.getElementById('content-top')?.scrollIntoView({ behavior: 'smooth' });
+                              }}
+                            >
+                              {totalPages}
+                            </button>
+                          </>
+                        )}
                       </div>
                       
                       <Button 
@@ -296,51 +420,4 @@ export default function ResearchPage() {
       </footer>
     </div>
   );
-}
-
-function paginateContent(content: string, page: number, charsPerPage: number): string {
-  const totalChars = content.length;
-  const startChar = (page - 1) * charsPerPage;
-  const endChar = Math.min(startChar + charsPerPage, totalChars);
-  
-  let paginatedContent = content.substring(startChar, endChar);
-  
-  if (page > 1) {
-    const firstTagEnd = paginatedContent.indexOf('>');
-    if (firstTagEnd !== -1) {
-      const tagMatch = content.substring(startChar - 50, startChar).match(/<([a-z0-9]+)[^>]*$/i);
-      if (tagMatch) {
-        paginatedContent = `<${tagMatch[1]}>${paginatedContent}`;
-      }
-    }
-  }
-  
-  if (endChar < totalChars) {
-    const lastTagStart = paginatedContent.lastIndexOf('<');
-    if (lastTagStart !== -1 && paginatedContent.indexOf('>', lastTagStart) === -1) {
-      paginatedContent = paginatedContent.substring(0, lastTagStart);
-    }
-    
-    const openTags = [];
-    const regex = /<\/?([a-z0-9]+)[^>]*>/gi;
-    let match;
-    let content = paginatedContent;
-    
-    while ((match = regex.exec(content)) !== null) {
-      if (match[0].startsWith('</')) {
-        const tag = match[1].toLowerCase();
-        if (openTags.length > 0 && openTags[openTags.length - 1] === tag) {
-          openTags.pop();
-        }
-      } else if (!match[0].endsWith('/>')) {
-        openTags.push(match[1].toLowerCase());
-      }
-    }
-    
-    while (openTags.length > 0) {
-      paginatedContent += `</${openTags.pop()}>`;
-    }
-  }
-  
-  return paginatedContent;
 }
