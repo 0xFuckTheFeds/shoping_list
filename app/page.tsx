@@ -113,7 +113,10 @@ export default async function Home() {
   const dashcoinXLink = "https://x.com/dune_dashcoin";
 
   // Fetch data from Dune with error handling
-  const marketStatsPromise = fetchMarketStats().catch((error) => {
+  const marketStatsPromise = fetchMarketStats().then(data => {
+    console.log("Resolved market stats data:", data);
+    return data;
+  }).catch((error) => {
     console.error("Error fetching market stats:", error);
     return {
       totalMarketCap: 0,
@@ -124,6 +127,7 @@ export default async function Home() {
       coinLaunches: 0,
     };
   });
+
 
   const tokenDataPromise = fetchPaginatedTokens(1, 10, "marketCap", "desc").catch(
     (error) => {
@@ -189,6 +193,8 @@ export default async function Home() {
     dexscreenerData = null;
   }
 
+  console.log("marketstats---------------------------------->", marketStats)
+
   // Get information about the Dune data cache with error handling
   let timeRemaining = 0;
   let lastRefreshTime = new Date(Date.now() -  34 * 60 * 1000); // Default to 1 hours ago
@@ -220,7 +226,7 @@ export default async function Home() {
 
   // Format numbers for display with null checks
   const formattedMarketCap = formatCurrency(
-    totalMarketCap?.total_marketcap_usd || marketStats?.totalMarketCap || 0
+    marketStats?.totalMarketCap || 0
   );
   const formattedVolume = formatCurrency(marketStats?.volume24h || 0);
   const formattedFeeEarnings = formatCurrency(marketStats?.feeEarnings24h || 0);
