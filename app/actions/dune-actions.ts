@@ -86,7 +86,7 @@ export async function fetchAllTokensFromDune(): Promise<TokenData[]> {
       console.error("Error getting refresh time info:", error);
     }
 
-    if ( (Date.now() - lastRefreshTime.getTime()) < 1 * 60 * 60 * 1000) {
+    if ( (Date.now() - lastRefreshTime.getTime()) > 1 * 60 * 60 * 1000) {
         const cachedData = await getFromCache<TokenData[]>(CACHE_KEYS.ALL_TOKENS)
           if (cachedData && cachedData.length > 0) {
           return cachedData
@@ -287,7 +287,7 @@ export async function fetchTokenMarketCaps(): Promise<TokenMarketCapData[]> {
       console.error("Error getting refresh time info:", error);
     }
 
-    if(Date.now() - lastRefreshTime.getTime() < 1 * 60 * 60 *1000){
+    if(Date.now() - lastRefreshTime.getTime() > 1 * 60 * 60 *1000){
       const cachedData = await getFromCache<TokenMarketCapData[]>(
         CACHE_KEYS.TOKEN_MARKET_CAPS
       );
@@ -323,6 +323,10 @@ export async function fetchTokenMarketCaps(): Promise<TokenMarketCapData[]> {
       } catch (error) {
         console.error("Error updating refresh timestamps:", error);
       }
+
+      const cachedData = await getFromCache<TokenMarketCapData[]>(
+        CACHE_KEYS.TOKEN_MARKET_CAPS
+      );
       console.log("It's time to refresh, fetching token market cap data from dune HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH");
       return data;
     }
@@ -451,7 +455,7 @@ export async function fetchMarketStats(): Promise<MarketStats> {
       console.error("Error getting refresh time info:", error);
     }
 
-    if ( (Date.now() - lastRefreshTime.getTime()) > 1 * 60 * 60 * 1000) {
+    if ( (Date.now() - lastRefreshTime.getTime()) < 1 * 60 * 60 * 1000) {
       const cachedData = await getFromCache<MarketStats>(CACHE_KEYS.MARKET_STATS);
       console.log("It's not time to refresh, fetching data from cache HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH", cachedData);
       if (cachedData && cachedData.totalMarketCap !== undefined) {
@@ -496,7 +500,6 @@ export async function fetchMarketStats(): Promise<MarketStats> {
       // Store in cache
       const now = Date.now();
       const nextRefresh = now + CACHE_DURATION;
-
       try {
         await setInCache(CACHE_KEYS.MARKET_STATS, data);
         await setInCache(CACHE_KEYS.LAST_REFRESH_TIME, now);
@@ -505,7 +508,7 @@ export async function fetchMarketStats(): Promise<MarketStats> {
         console.error("Error updating refresh timestamps:", error);
       }
 
-      console.log("It's time to fetch data from dune and storing this data to cach HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH", data);
+      console.log("It's time to fetch data from dune and storing this data to cach HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH");
       return data;
     }
 

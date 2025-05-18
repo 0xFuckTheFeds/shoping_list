@@ -326,7 +326,7 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
                         ) : researchScore !== null ? (
                           <div className="flex items-center">
                             <span className="font-medium mr-2">{researchScore.toFixed(1)}</span>
-                            <Link href={`/research/${tokenSymbol}`} className="hover:text-dashYellow">
+                            <Link href={`/tokendetail/${tokenSymbol}`} className="hover:text-dashYellow">
                               <FileSearch className="h-4 w-4" />
                             </Link>
                           </div>

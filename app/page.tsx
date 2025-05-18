@@ -128,18 +128,25 @@ export default async function Home() {
   });
 
 
-  const tokenDataPromise = fetchPaginatedTokens(1, 10, "marketCap", "desc").catch(
-    (error) => {
-      console.error("Error fetching paginated tokens:", error);
-      return {
-        tokens: [],
-        page: 1,
-        pageSize: 10,
-        totalTokens: 0,
-        totalPages: 1,
-      };
-    }
-  );
+  // const tokenDataPromise = fetchPaginatedTokens(1, 10, "marketCap", "desc").catch(
+  //   (error) => {
+  //     console.error("Error fetching paginated tokens:", error);
+  //     return {
+  //       tokens: [],
+  //       page: 1,
+  //       pageSize: 10,
+  //       totalTokens: 0,
+  //       totalPages: 1,
+  //     };
+  //   }
+  // );
+
+  const tokenDataPromise = fetchPaginatedTokens(1, 10, "marketCap", "desc").then(data => {
+    return data;
+  }).catch((error) => {
+    console.error("error.fetching tokens makret cap", error);
+    return {}
+    });
 
 
   // disabled at the moment for saving on API calls
@@ -148,20 +155,7 @@ export default async function Home() {
   //   return [];
   // });
     const marketCapTimeDataPromise = Promise.resolve([]); // Placeholder for now
-
-    // const marketStatsPromise = fetchMarketStats().then(data => {
-    //   return data;
-    // }).catch((error) => {
-    //   console.error("Error fetching market stats:", error);
-    //   return {
-    //     totalMarketCap: 0,
-    //     volume24h: 0,
-    //     transactions24h: 0,
-    //     feeEarnings24h: 0,
-    //     lifetimeVolume: 0,
-    //     coinLaunches: 0,
-    //   };
-    // });
+    
   const tokenMarketCapsPromise = fetchTokenMarketCaps().then(data => {
     return data;
   }).catch((error) => {
