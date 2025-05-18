@@ -150,11 +150,11 @@ export default async function Home() {
 
 
   // disabled at the moment for saving on API calls
-  // const marketCapTimeDataPromise = fetchMarketCapOverTime().catch((error) => {
-  //   console.error("Error fetching market cap over time:", error);
-  //   return [];
-  // });
-    const marketCapTimeDataPromise = Promise.resolve([]); // Placeholder for now
+  const marketCapTimeDataPromise = fetchMarketCapOverTime().catch((error) => {
+    console.error("Error fetching market cap over time:", error);
+    return [];
+  });
+    // const marketCapTimeDataPromise = Promise.resolve([]); // Placeholder for now
     
   const tokenMarketCapsPromise = fetchTokenMarketCaps().then(data => {
     return data;

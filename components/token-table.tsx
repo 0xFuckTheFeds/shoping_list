@@ -181,6 +181,34 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
     return scoreData?.score || null;
   }
 
+  // Function to sort tokens by research score
+  const sortByResearchScore = () => {
+    if (!filteredTokens.length || isLoadingResearch) return;
+    
+    const sortedTokens = [...filteredTokens].sort((a, b) => {
+      const scoreA = getResearchScore(a.symbol || '');
+      const scoreB = getResearchScore(b.symbol || '');
+      
+      // Handle null scores (put them at the bottom)
+      if (scoreA === null && scoreB === null) return 0;
+      if (scoreA === null) return sortDirection === "asc" ? -1 : 1;
+      if (scoreB === null) return sortDirection === "asc" ? 1 : -1;
+      
+      // Normal comparison for non-null scores
+      return sortDirection === "asc" 
+        ? scoreA - scoreB 
+        : scoreB - scoreA;
+    });
+    
+    setFilteredTokens(sortedTokens);
+  };
+
+  // Apply research score sorting when needed
+  useEffect(() => {
+    if (sortField === "researchScore" && !isLoadingResearch) {
+      sortByResearchScore();
+    }
+  }, [sortField, sortDirection, researchScores]);
 
   return (
     <div className="space-y-4">
@@ -205,6 +233,7 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
             <option value="marketCap">Market Cap</option>
             <option value="num_holders">Holders</option>
             <option value="created_time">Created Date</option>
+            <option value="researchScore">Research Score</option>
           </select>
           <select
             value={sortDirection}
@@ -259,8 +288,13 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
                 >
                   <div className="flex items-center gap-1">Created {renderSortIndicator("created_time")}</div>
                 </th>
-                <th className="text-left py-3 px-4 text-dashYellow">
-                  <div className="flex items-center gap-1">Research Score</div>
+                <th 
+                  className="text-left py-3 px-4 text-dashYellow cursor-pointer"
+                  onClick={() => handleSort("researchScore")}
+                >
+                  <div className="flex items-center gap-1">
+                    Research Score {renderSortIndicator("researchScore")}
+                  </div>
                 </th>
               </tr>
             </thead>
@@ -331,7 +365,7 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
                             </Link>
                           </div>
                         ) : (
-                          <span className="text-dashYellow-light opacity-50"></span>
+                          <span className="text-dashYellow-light opacity-50">-</span>
                         )}
                       </td>
                     </tr>

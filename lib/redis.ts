@@ -2,6 +2,7 @@ import { kv } from "@vercel/kv"
 
 // Cache keys
 export const CACHE_KEYS = {
+  // Data cache keys
   ALL_TOKENS: "dashcoin:all_tokens",
   VOLUME_TOKENS: "dashcoin:volume_tokens",
   MARKET_CAP_TIME: "dashcoin:market_cap_time",
@@ -9,13 +10,23 @@ export const CACHE_KEYS = {
   TOTAL_MARKET_CAP: "dashcoin:total_market_cap",
   NEW_TOKENS: "dashcoin:new_tokens",
   MARKET_STATS: "dashcoin:market_stats",
+  
+  // Global refresh keys (keep for backward compatibility)
   LAST_REFRESH_TIME: "dashcoin:last_refresh_time",
   NEXT_REFRESH_TIME: "dashcoin:next_refresh_time",
+  
+  // Query-specific refresh time keys
+  MARKET_CAP_TIME_LAST_REFRESH: "dashcoin:market_cap_time_last_refresh",
+  ALL_TOKENS_LAST_REFRESH: "dashcoin:all_tokens_last_refresh",
+  TOKEN_MARKET_CAPS_LAST_REFRESH: "dashcoin:token_market_caps_last_refresh",
+  MARKET_STATS_LAST_REFRESH: "dashcoin:market_stats_last_refresh",
+  
   REFRESH_IN_PROGRESS: "dashcoin:refresh_in_progress",
 }
 
-// Cache duration in milliseconds (4 hours)
-export const CACHE_DURATION = 1 * 60 * 60 * 1000
+// Cache durations in milliseconds
+export const CACHE_DURATION = 1 * 60 * 60 * 1000  // 1 hour
+export const CACHE_DURATION_LONG = 12 * 60 * 60 * 1000  // 12 hours
 
 // Check if KV is available
 const isKvAvailable = typeof kv !== "undefined" && kv !== null
@@ -58,7 +69,32 @@ export async function setInCache(key: string, data: any, expirationMs?: number):
 }
 
 /**
- * Get the last refresh time from cache
+ * Get the last refresh time for a specific query type
+ */
+export async function getQueryLastRefreshTime(queryType: string): Promise<Date> {
+  try {
+    const timestamp = await getFromCache<number>(queryType);
+    return timestamp ? new Date(timestamp) : new Date(0); // Return epoch if no timestamp
+  } catch (error) {
+    console.error(`Error getting refresh time for ${queryType}:`, error);
+    return new Date(0); // Return epoch if error
+  }
+}
+
+/**
+ * Set the last refresh time for a specific query type
+ */
+export async function setQueryLastRefreshTime(queryType: string): Promise<void> {
+  try {
+    const now = Date.now();
+    await setInCache(queryType, now);
+  } catch (error) {
+    console.error(`Error setting refresh time for ${queryType}:`, error);
+  }
+}
+
+/**
+ * Get the last refresh time from cache (legacy method)
  */
 export async function getLastRefreshTime(): Promise<Date | null> {
   try {
@@ -71,7 +107,7 @@ export async function getLastRefreshTime(): Promise<Date | null> {
 }
 
 /**
- * Get the next scheduled refresh time from cache
+ * Get the next scheduled refresh time from cache (legacy method)
  */
 export async function getNextRefreshTime(): Promise<Date | null> {
   try {
@@ -84,7 +120,35 @@ export async function getNextRefreshTime(): Promise<Date | null> {
 }
 
 /**
- * Calculate time remaining until next refresh
+ * Calculate time remaining until next refresh for a specific query type
+ */
+export async function getQueryTimeUntilNextRefresh(
+  queryType: string, 
+  refreshInterval: number
+): Promise<{
+  timeRemaining: number;
+  lastRefreshTime: Date;
+}> {
+  try {
+    const lastRefreshTime = await getQueryLastRefreshTime(queryType);
+    const nextRefreshTime = new Date(lastRefreshTime.getTime() + refreshInterval);
+    const timeRemaining = Math.max(0, nextRefreshTime.getTime() - Date.now());
+    
+    return {
+      timeRemaining,
+      lastRefreshTime
+    };
+  } catch (error) {
+    console.error(`Error getting time until next refresh for ${queryType}:`, error);
+    return {
+      timeRemaining: 0,
+      lastRefreshTime: new Date(0)
+    };
+  }
+}
+
+/**
+ * Legacy method - Calculate time remaining until next refresh
  */
 export async function getTimeUntilNextRefresh(): Promise<{
   timeRemaining: number
@@ -142,9 +206,6 @@ export async function acquireRefreshLock(): Promise<boolean> {
   }
 }
 
-/**
- * Release the refresh lock
- */
 export async function releaseRefreshLock(): Promise<void> {
   if (!isKvAvailable) {
     console.warn("KV is not available, skipping lock release")
@@ -158,7 +219,6 @@ export async function releaseRefreshLock(): Promise<void> {
   }
 }
 
-// Add this function to clear the cache
 export async function clearCache(key?: string): Promise<void> {
   if (!isKvAvailable) {
     console.warn("KV is not available, skipping cache clear")
