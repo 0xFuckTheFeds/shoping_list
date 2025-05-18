@@ -121,20 +121,27 @@ export default function ComparePage() {
   const token1SuggestionsRef = useRef<HTMLDivElement>(null);
   const token2SuggestionsRef = useRef<HTMLDivElement>(null);
 
-  const dummyAllTokens: TokenData[] = [
-    { token: "7gkgsqE2Uip7LUyrqEi8fyLPNSbn7GYu9yFgtxZwYUVa", name: "Dashcoin", symbol: "DASHC", marketCap: 50000000, num_holders: 12000, volume24h: 1200000, first_trade_time: "2024-03-01T10:00:00Z", marketcapgrowthperday: 0 },
-    { token: "EKpQGSJtjMFqKZgxbHmSEii3G1uhtqpEiW2kQXsH278W", name: "Solana", symbol: "SOL", marketCap: 60000000000, num_holders: 500000, volume24h: 2000000000, first_trade_time: "2020-03-10T10:00:00Z", marketcapgrowthperday: 0 },
-    { token: "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So", name: "Marinade staked SOL", symbol: "mSOL", marketCap: 1000000000, num_holders: 100000, volume24h: 50000000, first_trade_time: "2021-06-01T10:00:00Z", marketcapgrowthperday: 0 },
-    { token: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", name: "USD Coin", symbol: "USDC", marketCap: 30000000000, num_holders: 1000000, volume24h: 5000000000, first_trade_time: "2018-09-26T10:00:00Z", marketcapgrowthperday: 0 },
-    { token: "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsrsA", name: "Jupiter", symbol: "JUP", marketCap: 2000000000, num_holders: 200000, volume24h: 100000000, first_trade_time: "2024-01-31T10:00:00Z", marketcapgrowthperday: 0 },
-    { token: "DUSTawucrTsGU8hcqRdHDCbuYhCPADMLM2VcCb8VnFnQ", name: "DUST Protocol", symbol: "DUST", marketCap: 50000000, num_holders: 30000, volume24h: 1000000, first_trade_time: "2022-03-15T10:00:00Z", marketcapgrowthperday: 0 },
-  ];
 
   useEffect(() => {
-    setIsLoading(true);
-    setAllTokens(dummyAllTokens);
-    setIsLoading(false);
-    setError(null);
+    async function fetchTokens() {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/tokens');
+        if (!response.ok) {
+          throw new Error('Failed to fetch tokens');
+        }
+        const tokens = await response.json();
+        setAllTokens(tokens);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching tokens:', err);
+        setError('Failed to load token data. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchTokens();
   }, []);
 
   useEffect(() => {
