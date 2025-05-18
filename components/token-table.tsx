@@ -4,14 +4,57 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { formatCurrency } from "@/lib/utils"
 import { DashcoinCard } from "@/components/ui/dashcoin-card"
-import { ChevronDown, ChevronUp, Search, Loader2 } from "lucide-react"
+import { ChevronDown, ChevronUp, Search, Loader2, FileSearch } from "lucide-react"
 import { fetchPaginatedTokens } from "@/app/actions/dune-actions"
 import type { TokenData, PaginatedTokenResponse } from "@/types/dune"
 import { CopyAddress } from "@/components/copy-address"
 import { DuneQueryLink } from "@/components/dune-query-link"
 
+interface ResearchScoreData {
+  symbol: string
+  score: number | null
+  [key: string]: any 
+}
+
+async function fetchTokenResearch(): Promise<ResearchScoreData[]> {
+  const API_KEY = 'AIzaSyC8QxJez_UTHUJS7vFj1J3Sje0CWS9tXyk';
+  const SHEET_ID = '1Nra5QH-JFAsDaTYSyu-KocjbkZ0MATzJ4R-rUt-gLe0';
+  const SHEET_NAME = 'Dashcoin Scoring';
+  const RANGE = `${SHEET_NAME}!A1:K26`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
+
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (!data.values || data.values.length < 2) {
+      console.warn('No data found in Google Sheet');
+      return [];
+    }
+
+    const [header, ...rows] = data.values;
+    
+    const structured = rows.map((row: any) => {
+      const entry: Record<string, any> = {};
+      header.forEach((key: string, i: number) => {
+        entry[key.trim()] = row[i] || '';
+      });
+      return entry;
+    });
+
+    return structured.map((entry: any) => {
+      return {
+        symbol: (entry['Project'] || '').toString().toUpperCase(),
+        score: entry['Score'] ? parseFloat(entry['Score']) : null,
+      };
+    });
+  } catch (err) {
+    console.error('Google Sheets API error:', err);
+    return [];
+  }
+}
+
 export default function TokenTable({ data }: { data: PaginatedTokenResponse | TokenData[] }) {
-  // Convert legacy data format to new format if needed
   const initialData = Array.isArray(data)
     ? { tokens: data, page: 1, pageSize: 10, totalTokens: data.length, totalPages: Math.ceil(data.length / 10) }
     : data
@@ -24,8 +67,25 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
   const [isLoading, setIsLoading] = useState(false)
   const [tokenData, setTokenData] = useState<PaginatedTokenResponse>(initialData)
   const [filteredTokens, setFilteredTokens] = useState<TokenData[]>(initialData.tokens || [])
+  const [researchScores, setResearchScores] = useState<ResearchScoreData[]>([])
+  const [isLoadingResearch, setIsLoadingResearch] = useState(false)
 
-  // Filter tokens based on search term
+  useEffect(() => {
+    const getResearchScores = async () => {
+      setIsLoadingResearch(true);
+      try {
+        const scores = await fetchTokenResearch();
+        setResearchScores(scores);
+      } catch (error) {
+        console.error("Error fetching research scores:", error);
+      } finally {
+        setIsLoadingResearch(false);
+      }
+    };
+    
+    getResearchScores();
+  }, []);
+
   useEffect(() => {
     if (!Array.isArray(tokenData.tokens)) {
       setFilteredTokens([])
@@ -59,7 +119,6 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
     setFilteredTokens(filtered)
   }, [searchTerm, tokenData.tokens])
 
-  // Fetch data when page, pageSize, sort field, or sort direction changes
   const fetchData = async () => {
     setIsLoading(true);
     try {
@@ -68,10 +127,9 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
         itemsPerPage, 
         sortField, 
         sortDirection,
-        searchTerm // Pass the search term
+        searchTerm 
       );
       setTokenData(newData);
-      // We don't need to filter here anymore as it's handled server-side
       setFilteredTokens(newData.tokens || []);
     } catch (error) {
       console.error("Error fetching paginated tokens:", error);
@@ -81,24 +139,21 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
   };
 
   useEffect(() => {
-  // When search term changes, reset to page 1
-  if (currentPage !== 1) {
-    setCurrentPage(1);
-  } else {
-    // Only fetch if we're already on page 1
-    const timer = setTimeout(() => {
-      fetchData();
-    }, 300); // Debounce for 300ms
-    
-    return () => clearTimeout(timer);
-  }
-}, [searchTerm]);
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    } else {
+      const timer = setTimeout(() => {
+        fetchData();
+      }, 300);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [searchTerm]);
 
   useEffect(() => {
     fetchData()
   }, [currentPage, itemsPerPage, sortField, sortDirection])
 
-  // Handle sort
   const handleSort = (field: string) => {
     if (sortField === field) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc")
@@ -106,19 +161,24 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
       setSortField(field)
       setSortDirection("desc")
     }
-    // Reset to page 1 when sorting changes
     setCurrentPage(1)
   }
 
-  // Render sort indicator
   const renderSortIndicator = (field: string) => {
     if (sortField !== field) return null
     return sortDirection === "asc" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
   }
 
-  // Safe getter for token properties
   const getTokenProperty = (token: any, property: string, defaultValue: any = "N/A") => {
     return token && token[property] !== undefined && token[property] !== null ? token[property] : defaultValue
+  }
+
+  const getResearchScore = (tokenSymbol: string): number | null => {
+    if (!tokenSymbol) return null;
+    
+    const normalizedSymbol = tokenSymbol.toUpperCase();
+    const scoreData = researchScores.find(item => item.symbol.toUpperCase() === normalizedSymbol);
+    return scoreData?.score || null;
   }
 
 
@@ -158,7 +218,7 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
             value={itemsPerPage}
             onChange={(e) => {
               setItemsPerPage(Number(e.target.value))
-              setCurrentPage(1) // Reset to first page when changing items per page
+              setCurrentPage(1)
             }}
             className="px-3 py-2 bg-dashGreen-dark border border-dashBlack rounded-md text-dashYellow-light focus:outline-none focus:ring-2 focus:ring-dashYellow"
           >
@@ -169,7 +229,6 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
         </div>
       </div>
 
-      {/* Token table */}
       <DashcoinCard className="p-0 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
@@ -200,12 +259,15 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
                 >
                   <div className="flex items-center gap-1">Created {renderSortIndicator("created_time")}</div>
                 </th>
+                <th className="text-left py-3 px-4 text-dashYellow">
+                  <div className="flex items-center gap-1">Research Score</div>
+                </th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center">
+                  <td colSpan={7} className="py-8 text-center">
                     <div className="flex items-center justify-center gap-2">
                       <Loader2 className="h-5 w-5 animate-spin text-dashYellow" />
                       <span>Loading tokens...</span>
@@ -216,6 +278,7 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
                 filteredTokens.map((token: any , index: number) => {
                   const tokenAddress = getTokenProperty(token, "token", "")
                   const tokenSymbol = getTokenProperty(token, "symbol", "???")
+                  const researchScore = getResearchScore(tokenSymbol)
 
                   return (
                     <tr
@@ -254,12 +317,29 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
                       <td className="py-3 px-4">
                         {token && token.created_time ? new Date(token.created_time).toLocaleDateString() : "N/A"}
                       </td>
+                      <td className="py-3 px-4">
+                        {isLoadingResearch ? (
+                          <div className="flex items-center">
+                            <Loader2 className="h-4 w-4 animate-spin text-dashYellow mr-2" />
+                            <span>Loading...</span>
+                          </div>
+                        ) : researchScore !== null ? (
+                          <div className="flex items-center">
+                            <span className="font-medium mr-2">{researchScore.toFixed(1)}</span>
+                            <Link href={`/research/${tokenSymbol}`} className="hover:text-dashYellow">
+                              <FileSearch className="h-4 w-4" />
+                            </Link>
+                          </div>
+                        ) : (
+                          <span className="text-dashYellow-light opacity-50"></span>
+                        )}
+                      </td>
                     </tr>
                   )
                 })
               ) : (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center opacity-80">
+                  <td colSpan={7} className="py-8 text-center opacity-80">
                     {searchTerm
                       ? "No tokens found matching your search."
                       : "No token data available. Check your Dune query or API key."}
@@ -343,38 +423,31 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
   )
 }
 
-// Helper function to generate page numbers for pagination
 function generatePageNumbers(currentPage: number, totalPages: number): number[] {
-  // If 7 or fewer pages, show all pages
   if (totalPages <= 7) {
     return Array.from({ length: totalPages }, (_, i) => i + 1)
   }
 
-  // Always include first and last page
   const pages: number[] = []
 
-  // Always show page 1
   pages.push(1)
 
-  // If current page is close to the beginning
   if (currentPage <= 4) {
     pages.push(2, 3, 4, 5)
-    pages.push(0) // Ellipsis placeholder
+    pages.push(0) 
     pages.push(totalPages)
     return pages
   }
 
-  // If current page is close to the end
   if (currentPage >= totalPages - 3) {
-    pages.push(0) // Ellipsis placeholder
+    pages.push(0) 
     pages.push(totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages)
     return pages
   }
 
-  // Current page is in the middle
-  pages.push(0) // Ellipsis placeholder
+  pages.push(0) 
   pages.push(currentPage - 1, currentPage, currentPage + 1)
-  pages.push(0) // Ellipsis placeholder
+  pages.push(0) 
   pages.push(totalPages)
 
   return pages
