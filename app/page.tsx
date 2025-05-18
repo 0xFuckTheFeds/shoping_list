@@ -216,7 +216,6 @@ export default async function Home() {
   });
   const formattedNextRefresh = nextRefreshTime.toLocaleString();
 
-
   // Calculate hours and minutes until next refresh
   const hoursUntilRefresh = Math.floor(timeRemaining / (60 * 60 * 1000));
   const minutesUntilRefresh = Math.floor(
