@@ -149,10 +149,25 @@ export default async function Home() {
   // });
     const marketCapTimeDataPromise = Promise.resolve([]); // Placeholder for now
 
-  const tokenMarketCapsPromise = fetchTokenMarketCaps().catch((error) => {
-    console.error("Error fetching token market caps:", error);
-    return [];
-  });
+    // const marketStatsPromise = fetchMarketStats().then(data => {
+    //   return data;
+    // }).catch((error) => {
+    //   console.error("Error fetching market stats:", error);
+    //   return {
+    //     totalMarketCap: 0,
+    //     volume24h: 0,
+    //     transactions24h: 0,
+    //     feeEarnings24h: 0,
+    //     lifetimeVolume: 0,
+    //     coinLaunches: 0,
+    //   };
+    // });
+  const tokenMarketCapsPromise = fetchTokenMarketCaps().then(data => {
+    return data;
+  }).catch((error) => {
+    console.error("error.fetching tokens makret cap", error);
+    return {}
+    });
   
   const totalMarketCapPromise = fetchTotalMarketCap().catch((error) => {
     console.error("Error fetching total market cap:", error);
@@ -217,7 +232,7 @@ export default async function Home() {
   const formattedNextRefresh = nextRefreshTime.toLocaleString();
 
   // Calculate hours and minutes until next refresh
-  const hoursUntilRefresh = Math.floor(timeRemaining / (60 * 60 * 1000));
+  const hoursUntilRefresh = Math.floor(timeRemaining / (2 * 60 * 60 * 1000));
   const minutesUntilRefresh = Math.floor(
     (timeRemaining % (60 * 60 * 1000)) / (60 * 1000)
   );

@@ -507,155 +507,6 @@ async function fetchDuneQueryResults(queryId: number, limit = 1000) {
   }
 }
 
-/**
- * Execute a Dune query and return the results
- */
-// async function executeDuneQuery(
-//   queryId: number,
-//   parameters: DuneQueryParameter[] = []
-// ) {
-//   if (!DUNE_API_KEY) {
-//     throw new Error("DUNE_API_KEY is not set");
-//   }
-
-//   try {
-//     // Step 1: Execute the query
-//     const executeResponse = await fetch(
-//       `https://api.dune.com/api/v1/query/${queryId}/execute`,
-//       {
-//         method: "POST",
-//         headers: {
-//           "X-Dune-API-Key": DUNE_API_KEY,
-//           "Content-Type": "application/json",
-//         },
-//         body: JSON.stringify({ parameters }),
-//       }
-//     );
-
-//     if (!executeResponse.ok) {
-//       throw new Error(`Failed to execute query: ${executeResponse.statusText}`);
-//     }
-
-//     const executeData = await executeResponse.json();
-//     const executionId = executeData.execution_id;
-
-//     // Step 2: Poll for results
-//     let executionStatus: DuneExecutionResponse;
-//     let attempts = 0;
-//     const maxAttempts = 10;
-
-//     do {
-//       // Wait a bit between polling attempts
-//       await new Promise((resolve) => setTimeout(resolve, 2000));
-
-//       const statusResponse = await fetch(
-//         `https://api.dune.com/api/v1/execution/${executionId}/status`,
-//         {
-//           headers: {
-//             "X-Dune-API-Key": DUNE_API_KEY,
-//           },
-//         }
-//       );
-
-//       if (!statusResponse.ok) {
-//         throw new Error(
-//           `Failed to get execution status: ${statusResponse.statusText}`
-//         );
-//       }
-
-//       executionStatus = await statusResponse.json();
-//       attempts++;
-//     } while (
-//       executionStatus.state !== "QUERY_STATE_COMPLETED" &&
-//       executionStatus.state !== "QUERY_STATE_FAILED" &&
-//       attempts < maxAttempts
-//     );
-
-//     if (executionStatus.state === "QUERY_STATE_FAILED") {
-//       throw new Error("Query execution failed");
-//     }
-
-//     if (executionStatus.state !== "QUERY_STATE_COMPLETED") {
-//       throw new Error("Query execution timed out");
-//     }
-
-//     // Step 3: Get the results
-//     const resultsResponse = await fetch(
-//       `https://api.dune.com/api/v1/execution/${executionId}/results`,
-//       {
-//         headers: {
-//           "X-Dune-API-Key": DUNE_API_KEY,
-//         },
-//       }
-//     );
-
-//     if (!resultsResponse.ok) {
-//       throw new Error(`Failed to get results: ${resultsResponse.statusText}`);
-//     }
-
-//     const resultsData = await resultsResponse.json();
-//     return resultsData.result;
-//   } catch (error) {
-//     console.error("Error executing Dune query:", error);
-//     throw error;
-//   }
-// }
-
-/**
- * Fetch volume by token data from Dune query 5119173
- */
-// async function fetchVolumeByToken(): Promise<VolumeByTokenData[]> {
-//   try {
-//     // Check if data exists in cache
-//     console.log("Using mock volume by token data in preview environment");
-//     const cachedData = await getFromCache<VolumeByTokenData[]>(
-//       CACHE_KEYS.VOLUME_TOKENS
-//     );
-//     if (cachedData) {
-//       return cachedData;
-//     }
-
-//     // Use mock data in preview environments
-//     if (IS_PREVIEW) {
-//       const tokens = MOCK_DATA.tokens.map((token) => ({
-//         token: token.token,
-//         symbol: token.symbol,
-//         vol_usd: token.vol_usd,
-//         txs: token.txs,
-//         created_time: token.created_time,
-//       }));
-
-//       // Store in cache
-//       await setInCache(CACHE_KEYS.VOLUME_TOKENS, tokens);
-//       return tokens;
-//     }
-
-//     console.log("Fetching volume by token data from Dune");
-//     const result = await fetchDuneQueryResults(5140151, 1000);
-
-//     if (result && result.rows && result.rows.length > 0) {
-//       // Process the data from the query
-//       const tokens = result.rows.map((row: any) => {
-//         return {
-//           token: row.token,
-//           symbol: row.symbol,
-//           vol_usd: Number.parseFloat(row.vol_usd || 0),
-//           txs: Number.parseInt(row.txs || 0),
-//           created_time: row.created_time,
-//         };
-//       });
-
-//       // Store in cache
-//       await setInCache(CACHE_KEYS.VOLUME_TOKENS, tokens);
-//       return tokens;
-//     }
-
-//     throw new Error("No volume data returned from Dune query");
-//   } catch (error) {
-//     console.error("Error fetching volume by token data from Dune:", error);
-//     return [];
-//   }
-// }
 
 /**
  * Fetch all token data directly from Dune query 5129959 (Pie Chart of Believe Coins by Market Cap)
@@ -673,7 +524,7 @@ export async function fetchAllTokensFromDune(): Promise<TokenData[]> {
       console.error("Error getting refresh time info:", error);
     }
 
-    if ( (Date.now() - lastRefreshTime.getTime()) > 1 * 60 * 60 * 1000) {
+    if ( (Date.now() - lastRefreshTime.getTime()) < 1 * 60 * 60 * 1000) {
         const cachedData = await getFromCache<TokenData[]>(CACHE_KEYS.ALL_TOKENS)
           if (cachedData && cachedData.length > 0) {
           return cachedData
@@ -831,20 +682,14 @@ export async function fetchMarketCapOverTime(): Promise<MarketCapTimeData[]> {
   const MARKET_CAP_QUERY_ID = 5119241;
   try {
     // Check if data exists in cache
-    const cachedData = await getFromCache<MarketCapTimeData[]>(
-      CACHE_KEYS.MARKET_CAP_TIME
-    );
-    if (cachedData && cachedData.length > 0) {
-      return cachedData;
-    }
+    // const cachedData = await getFromCache<MarketCapTimeData[]>(
+    //   CACHE_KEYS.MARKET_CAP_TIME
+    // );
+    // if (cachedData && cachedData.length > 0) {
+    //   return cachedData;
+    // }
 
     // Use mock data in preview environments
-    console.log("Using mock market cap time data in preview environment");
-    if (IS_PREVIEW) {
-      const mockData = [...MOCK_DATA.marketCapTimeData];
-      await setInCache(CACHE_KEYS.MARKET_CAP_TIME, mockData);
-      return mockData;
-    }
 
     const result = await fetchDuneQueryResults(MARKET_CAP_QUERY_ID);
 
@@ -898,16 +743,6 @@ export async function fetchTokenMarketCaps(): Promise<TokenMarketCapData[]> {
         return cachedData;
       }
     }
-    // Check if data exists in cache
-    
-
-    // Use mock data in preview environments
-    if (IS_PREVIEW) {
-      console.log("Using mock token market cap data in preview environment");
-      const mockData = [...MOCK_DATA.tokenMarketCaps];
-      await setInCache(CACHE_KEYS.TOKEN_MARKET_CAPS, mockData);
-      return mockData;
-    }
 
     const result = await fetchDuneQueryResults(5140151);
 
@@ -925,8 +760,17 @@ export async function fetchTokenMarketCaps(): Promise<TokenMarketCapData[]> {
         rn: index + 1, // Assign rank based on array index
       }));
 
-      // Store in cache
-      await setInCache(CACHE_KEYS.TOKEN_MARKET_CAPS, data);
+      const now = Date.now();
+      const nextRefresh = now + CACHE_DURATION;
+
+      try {
+        await setInCache(CACHE_KEYS.TOKEN_MARKET_CAPS, data);
+        await setInCache(CACHE_KEYS.LAST_REFRESH_TIME, now);
+        await setInCache(CACHE_KEYS.NEXT_REFRESH_TIME, nextRefresh);
+      } catch (error) {
+        console.error("Error updating refresh timestamps:", error);
+      }
+
       return data;
     }
 
@@ -1079,13 +923,6 @@ export async function fetchMarketStats(): Promise<MarketStats> {
       }
     }
 
-    // Use mock data in preview environments
-    if (IS_PREVIEW) {
-      const mockData = { ...MOCK_DATA.marketStats };
-      await setInCache(CACHE_KEYS.MARKET_STATS, mockData);
-      return mockData;
-    }
-
     // Fetch data from the new query
     const result = await fetchDuneQueryResults(5140151);
 
@@ -1132,8 +969,7 @@ export async function fetchMarketStats(): Promise<MarketStats> {
         console.error("Error updating refresh timestamps:", error);
       }
 
-      console.log(data, "It's time to fetch data from dune and storing this data to cach HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH")
-      console.log(CACHE_KEYS.LAST_REFRESH_TIME, "It's time to fetch data from dune and storing this data to cach HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH")
+      console.log("It's time to fetch data from dune and storing this data to cach HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH", data);
       return data;
     }
 
@@ -1322,8 +1158,8 @@ export async function refreshDuneData(): Promise<boolean> {
       };
     }
 
-    // If more than 30 minutes remaining, skip refresh
-    if (refreshInfo.timeRemaining > 30 * 60 * 1000) {
+    // If more than 1 minutes remaining, skip refresh
+    if (refreshInfo.timeRemaining > 1 * 60 * 1000) {
       return false;
     }
 
