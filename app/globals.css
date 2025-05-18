@@ -97,7 +97,7 @@
 .card-with-border {
   position: relative;
   border-radius: 1rem;
-  overflow: hidden;
+  /* overflow: hidden; */ /* Removed to allow suggestion dropdown to be visible */
   background: rgba(42, 47, 14, 0.98); /* dashGreen-card with high opacity */
   border: 2px solid #222222;
   box-shadow: 0 8px 0 0 #222222, 0 0 15px rgba(0, 0, 0, 0.3);
@@ -239,4 +239,51 @@
 
 .loading-pulse {
   animation: pulse 1.5s infinite;
+}
+
+/* Military-themed animations */
+@keyframes tactical-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); text-shadow: 3px 3px 0 #222222, 0 0 10px rgba(255, 215, 0, 0.5); }
+}
+
+@keyframes tactical-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes tactical-scan {
+  0% { background-position: 0 0; }
+  100% { background-position: 16px 16px; }
+}
+
+@keyframes tactical-flash {
+  0%, 50%, 100% { opacity: 0; transform: scale(0.8); }
+  5%, 45% { opacity: 1; transform: scale(1.2); }
+}
+
+@keyframes appear {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Animation classes */
+.animate-tactical-pulse {
+  animation: tactical-pulse 3s ease-in-out infinite;
+}
+
+.animate-tactical-blink {
+  animation: tactical-blink 2s ease-in-out infinite;
+}
+
+.animate-tactical-scan {
+  animation: tactical-scan 30s linear infinite;
+}
+
+.animate-tactical-flash {
+  animation: tactical-flash 4s ease-in-out infinite;
+}
+
+.animate-appear {
+  animation: appear 0.8s ease-out forwards;
 }
