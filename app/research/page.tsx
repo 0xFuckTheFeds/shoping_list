@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/navbar";
 import { DashcoinCard, DashcoinCardContent, DashcoinCardHeader, DashcoinCardTitle } from "@/components/ui/dashcoin-card";
-import { Button } from "@/components/ui/button";
-import { Twitter, Search, Calendar, User, Clock, ChevronLeft, ChevronRight, Hexagon, BookOpen, ArrowRight } from "lucide-react";
+import { Twitter, Search, Calendar, Clock, Hexagon, BookOpen, ArrowRight } from "lucide-react";
 import { DashcoinLogo } from "@/components/dashcoin-logo";
 import { researchPosts } from "@/data/research-data";
 
@@ -31,8 +30,6 @@ export default function ResearchPage() {
   // Client-side state
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPostId, setSelectedPostId] = useState("1");
-  const [currentPage, setCurrentPage] = useState(1);
-  const contentRef = useRef(null);
   
   // Function to filter posts based on search query
   const filteredPosts = researchPosts.filter((post) => 
@@ -44,67 +41,14 @@ export default function ResearchPage() {
   // Get the selected post
   const selectedPost = researchPosts.find((post) => post.id === selectedPostId) || researchPosts[0];
 
-  // Calculate content per page based on content length and viewport
-  const calculateWordsPerPage = () => {
-    // Average words per page based on content area size
-    // This is a reasonable estimate that keeps content chunks manageable
-    return 500; // Adjust this value based on your content density and font size
-  };
-
-  // Paginate content based on words rather than characters for better readability
-  interface PaginateContentParams {
-    content: string;
-    page: number;
-    wordsPerPage: number;
-  }
-
-  const paginateContent = (
-    content: string,
-    page: number,
-    wordsPerPage: number
-  ): string => {
-    // Split content into words
-    const allWords: string[] = content.split(/\s+/);
-    const totalWords: number = allWords.length;
-    
-    // Calculate start and end indices
-    const startIndex: number = (page - 1) * wordsPerPage;
-    const endIndex: number = Math.min(startIndex + wordsPerPage, totalWords);
-    
-    // Get subset of words for current page
-    const pageWords: string[] = allWords.slice(startIndex, endIndex);
-    
-    // Join words back together with spaces
-    return pageWords.join(' ');
-  };
-
-  // Handle pagination with improved content chunking
-  const wordsPerPage = calculateWordsPerPage();
-  const totalWords = selectedPost.content.split(/\s+/).length;
-  const totalPages = Math.ceil(totalWords / wordsPerPage);
-  
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-      // Scroll to top of content area
-      document.getElementById('content-top')?.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
-  const handlePrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-      document.getElementById('content-top')?.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
   // Select a post from sidebar
   const handleSelectPost = (id: string) => {
     setSelectedPostId(id);
-    setCurrentPage(1); // Reset to first page when selecting a new post
+    // Optional: Scroll to top of article content when new post is selected
+    document.getElementById('content-top')?.scrollIntoView({ behavior: 'smooth' });
   };
   
-  // Effect to set the height of containers on initial load and window resize
+  // Effect to set the height of the sidebar container on initial load and window resize
   useEffect(() => {
     const setContainerHeights = () => {
       const viewportHeight = window.innerHeight;
@@ -112,11 +56,10 @@ export default function ResearchPage() {
       const headerHeight = document.querySelector('.dashcoin-title')?.parentElement?.offsetHeight || 0;
       const footerHeight = document.querySelector('footer')?.offsetHeight || 0;
       
-      // Calculate available height for the content area
       const availableHeight = viewportHeight - navbarHeight - headerHeight - footerHeight - 48; // 48px for padding
       
-      // Set the height for the content containers
-      document.querySelectorAll('.content-container').forEach((el) => {
+      // Set the height ONLY for the sidebar content container
+      document.querySelectorAll('.sidebar-content-container').forEach((el) => {
         (el as HTMLElement).style.height = `${availableHeight}px`;
       });
     };
@@ -129,17 +72,10 @@ export default function ResearchPage() {
     };
   }, []);
 
-  // Reset page number when post changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedPostId]);
-
   return (
     <div className="min-h-screen bg-dashGreen-darkest relative overflow-x-hidden">
-      {/* Add global styles */}
       <style jsx global>{globalStyles}</style>
       
-      {/* Background hexagon decorations */}
       <div className="absolute top-20 left-10 opacity-5 transform rotate-45">
         <Hexagon size={300} />
       </div>
@@ -150,7 +86,6 @@ export default function ResearchPage() {
       <Navbar dashcoinTradeLink={dashcoinTradeLink} />
 
       <main className="container mx-auto px-4 py-6 relative z-10">
-        {/* Enhanced Header with Decoration */}
         <div className="mb-8 w-full relative">
           <div className="absolute -top-8 -left-4 w-20 h-20 bg-dashYellow opacity-10 rounded-full blur-xl"></div>
           <div className="absolute top-10 right-20 w-32 h-32 bg-dashGreen-light opacity-5 rounded-full blur-xl"></div>
@@ -162,9 +97,9 @@ export default function ResearchPage() {
         </div>
 
         <div className="flex flex-col justify-center items-start lg:flex-row gap-8">
-          {/* Sidebar - Research Directory */}
+          {/* Sidebar - Research Directory */} 
           <div className="lg:w-1/4 w-full">
-            <DashcoinCard className="content-container overflow-hidden transition-all duration-300 hover:shadow-[0_0_15px_rgba(234,179,8,0.05)]">
+            <DashcoinCard className="sidebar-content-container overflow-hidden transition-all duration-300 hover:shadow-[0_0_15px_rgba(234,179,8,0.05)]">
               <DashcoinCardHeader className="sticky top-0 bg-dashGreen-darkest z-10">
                 <DashcoinCardTitle className="flex items-center ">
                   <BookOpen className="h-5 w-5 mr-2 text-dashYellow" />
@@ -174,7 +109,7 @@ export default function ResearchPage() {
                 <div className="relative mt-4 group">
                   <input 
                     type="text" 
-                    placeholder="Search coins..." 
+                    placeholder="Search" 
                     className="w-full px-4 py-2 rounded-md bg-dashGreen-dark border border-dashGreen-light focus:border-dashYellow focus:outline-none transition-all duration-300 group-hover:border-dashYellow-light"
                     onChange={(e) => setSearchQuery(e.target.value)}
                     value={searchQuery}
@@ -216,17 +151,14 @@ export default function ResearchPage() {
             </DashcoinCard>
           </div>
 
-          {/* Main Content - Research Viewer */}
+          {/* Main Content - Research Viewer */} 
           <div className="lg:w-3/4 w-full" id="content-top">
-            <DashcoinCard className="content-container overflow-hidden transition-all duration-300 hover:shadow-[0_0_15px_rgba(234,179,8,0.05)] relative">
-              {/* Decorative elements */}
+            <DashcoinCard className="transition-all duration-300 hover:shadow-[0_0_15px_rgba(234,179,8,0.05)] relative">
               <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-r from-transparent via-dashYellow/30 to-transparent"></div>
               <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-dashYellow/30 via-transparent to-dashYellow/30"></div>
               
-              {/* Header section with metadata and image */}
-              <div className="flex flex-col h-full">
+              <div className="flex flex-col">
                 <DashcoinCardHeader className="flex justify-between items-start border-b border-dashGreen-light pb-4 flex-shrink-0">
-                  {/* Left side: Text content */}
                   <div className="flex flex-col flex-grow mr-4">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="h-10 w-10 rounded-full overflow-hidden relative bg-dashGreen-dark border border-dashYellow/20 flex items-center justify-center shadow-lg">
@@ -249,7 +181,6 @@ export default function ResearchPage() {
                     </p>
                   </div>
                   
-                  {/* Right side: Image */}
                   {selectedPost.imageUrl && (
                     <div className="flex-shrink-0 w-32 h-32 overflow-hidden rounded-lg border border-dashYellow/20">
                       <div className="relative w-full h-full bg-dashGreen-dark flex items-center justify-center hover:scale-105 transition-transform duration-500">
@@ -262,137 +193,13 @@ export default function ResearchPage() {
                   )}
                 </DashcoinCardHeader>
                 
-                {/* Content section with scroll */}
-                <DashcoinCardContent className="flex-grow overflow-y-auto no-scrollbar flex flex-col">
+                <DashcoinCardContent className="no-scrollbar flex flex-col py-4">
                   <div 
-                    ref={contentRef}
                     className="prose prose-invert max-w-none prose-headings:text-dashYellow prose-a:text-dashYellow-light prose-img:rounded-lg prose-img:my-8 prose-img:shadow-lg flex-grow"
                     dangerouslySetInnerHTML={{ 
-                      __html: paginateContent(selectedPost.content, currentPage, wordsPerPage) 
+                      __html: selectedPost.content 
                     }}
                   />
-                  
-                  {/* Pagination controls */}
-                  {totalPages > 1 && (
-                    <div className="flex justify-between items-center mt-8 border-t border-dashGreen-light pt-4 flex-shrink-0">
-                      <Button 
-                        variant="outline" 
-                        className={`border-dashYellow text-dashYellow hover:bg-dashYellow hover:text-dashGreen-darkest transition-all duration-300 ${currentPage <= 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        onClick={handlePrevPage}
-                        disabled={currentPage <= 1}
-                      >
-                        <ChevronLeft className="mr-2 h-4 w-4" /> Previous
-                      </Button>
-                      
-                      <div className="flex items-center space-x-1">
-                        {/* Pagination numbers with intelligent limiting */}
-                        {totalPages <= 5 ? (
-                          // Show all pages if 5 or fewer
-                          Array.from({ length: totalPages }, (_, i) => (
-                            <button
-                              key={i}
-                              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
-                                currentPage === i + 1
-                                  ? 'bg-dashYellow text-dashGreen-darkest font-bold'
-                                  : 'text-dashYellow-light hover:bg-dashGreen-dark'
-                              }`}
-                              onClick={() => {
-                                setCurrentPage(i + 1);
-                                document.getElementById('content-top')?.scrollIntoView({ behavior: 'smooth' });
-                              }}
-                            >
-                              {i + 1}
-                            </button>
-                          ))
-                        ) : (
-                          // Show limited pages with ellipsis for larger page counts
-                          <>
-                            {/* First page */}
-                            <button
-                              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
-                                currentPage === 1
-                                  ? 'bg-dashYellow text-dashGreen-darkest font-bold'
-                                  : 'text-dashYellow-light hover:bg-dashGreen-dark'
-                              }`}
-                              onClick={() => {
-                                setCurrentPage(1);
-                                document.getElementById('content-top')?.scrollIntoView({ behavior: 'smooth' });
-                              }}
-                            >
-                              1
-                            </button>
-                            
-                            {/* Ellipsis or second page */}
-                            {currentPage > 3 && (
-                              <span className="text-dashYellow-light px-1">...</span>
-                            )}
-                            
-                            {/* Pages around current page */}
-                            {Array.from(
-                              { length: Math.min(3, totalPages - 2) },
-                              (_, i) => {
-                                const pageNum = Math.max(
-                                  2,
-                                  Math.min(
-                                    currentPage - 1 + i,
-                                    totalPages - 1
-                                  )
-                                );
-                                return (
-                                  pageNum > 1 &&
-                                  pageNum < totalPages && (
-                                    <button
-                                      key={pageNum}
-                                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
-                                        currentPage === pageNum
-                                          ? 'bg-dashYellow text-dashGreen-darkest font-bold'
-                                          : 'text-dashYellow-light hover:bg-dashGreen-dark'
-                                      }`}
-                                      onClick={() => {
-                                        setCurrentPage(pageNum);
-                                        document.getElementById('content-top')?.scrollIntoView({ behavior: 'smooth' });
-                                      }}
-                                    >
-                                      {pageNum}
-                                    </button>
-                                  )
-                                );
-                              }
-                            )}
-                            
-                            {/* Ellipsis or second-to-last page */}
-                            {currentPage < totalPages - 2 && (
-                              <span className="text-dashYellow-light px-1">...</span>
-                            )}
-                            
-                            {/* Last page */}
-                            <button
-                              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
-                                currentPage === totalPages
-                                  ? 'bg-dashYellow text-dashGreen-darkest font-bold'
-                                  : 'text-dashYellow-light hover:bg-dashGreen-dark'
-                              }`}
-                              onClick={() => {
-                                setCurrentPage(totalPages);
-                                document.getElementById('content-top')?.scrollIntoView({ behavior: 'smooth' });
-                              }}
-                            >
-                              {totalPages}
-                            </button>
-                          </>
-                        )}
-                      </div>
-                      
-                      <Button 
-                        variant="outline"
-                        className={`border-dashYellow text-dashYellow hover:bg-dashYellow hover:text-dashGreen-darkest transition-all duration-300 ${currentPage >= totalPages ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        onClick={handleNextPage}
-                        disabled={currentPage >= totalPages}
-                      >
-                        Next <ChevronRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
                 </DashcoinCardContent>
               </div>
             </DashcoinCard>
