@@ -465,16 +465,6 @@ const DUNE_API_KEY = process.env.DUNE_API_KEY;
  * Fetch results directly from a Dune query using the results endpoint
  */
 async function fetchDuneQueryResults(queryId: number, limit = 1000) {
-  if (IS_PREVIEW) {
-    // Return mock data based on query ID
-    console.log(`Using mock data for query ${queryId} in preview environment`);
-    if (queryId === 5140151) {
-      return { rows: MOCK_DATA.tokens };
-    } else if (queryId === 5119241) {
-      return { rows: MOCK_DATA.marketCapTimeData };
-    }
-    return { rows: [] };
-  }
 
   if (!DUNE_API_KEY) {
     console.error("DUNE_API_KEY is not set");
@@ -730,16 +720,17 @@ export async function fetchTokenMarketCaps(): Promise<TokenMarketCapData[]> {
       const refreshInfo = await getTimeUntilNextDuneRefresh();
       lastRefreshTime = refreshInfo.lastRefreshTime;
 
-      console.log("------------------------->", lastRefreshTime)
+      console.log("Last refresh time------------------------->", lastRefreshTime)
     } catch (error) {
       console.error("Error getting refresh time info:", error);
     }
 
-    if(Date.now() - lastRefreshTime.getTime() < 1 * 60 * 60 *1000){
+    if(Date.now() - lastRefreshTime.getTime() > 1 * 60 * 60 *1000){
       const cachedData = await getFromCache<TokenMarketCapData[]>(
         CACHE_KEYS.TOKEN_MARKET_CAPS
       );
       if (cachedData && cachedData.length > 0) {
+        console.log("It's not time to refresh, fetching token market cap data from cache HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH", cachedData);
         return cachedData;
       }
     }
@@ -770,7 +761,7 @@ export async function fetchTokenMarketCaps(): Promise<TokenMarketCapData[]> {
       } catch (error) {
         console.error("Error updating refresh timestamps:", error);
       }
-
+      console.log("It's time to refresh, fetching token market cap data from dune HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH", data);
       return data;
     }
 
