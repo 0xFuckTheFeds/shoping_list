@@ -29,434 +29,6 @@ const IS_PREVIEW =
   process.env.ENABLE_DUNE_API === "false" ||
   !process.env.DUNE_API_KEY;
 // Mock data for preview environments
-const MOCK_DATA = {
-  tokens: [
-    {
-      token: "7gkgsqE2Uip7LUyrqEi8fyLPNSbn7GYu9yFgtxZwYUVa",
-      symbol: "DASHC",
-      name: "Dashcoin",
-      vol_usd: 3500000,
-      txs: 2000,
-      created_time: "2023-12-01T00:00:00Z",
-      description: "Dashcoin (DASHC)",
-      price: 0.00000142,
-      marketCap: 142000000,
-      num_holders: 12500,
-      change24h: 2.5,
-      change1h: 0.8,
-      liquidity: 2500000,
-      buys: 1200,
-      sells: 800,
-      volume24h: 3500000,
-    },
-    {
-      token: "Fjq9SmWmtnETAVNbir1eXhrVANi1GDoHEA4nb4tNn7w6",
-      symbol: "GOON",
-      name: "Goon Coin",
-      vol_usd: 2800000,
-      txs: 1800,
-      created_time: "2023-11-15T00:00:00Z",
-      description: "Goon Coin (GOON)",
-      price: 0.00000098,
-      marketCap: 98000000,
-      num_holders: 9800,
-      change24h: 1.2,
-      change1h: 0.3,
-      liquidity: 1800000,
-      buys: 950,
-      sells: 650,
-      volume24h: 2800000,
-    },
-    {
-      token: "8JUjWjvdgaP7aLQzU4YQgvFgzxpuEpJhwTCLUdZ9icFw",
-      symbol: "WIF",
-      name: "Wif Coin",
-      vol_usd: 4200000,
-      txs: 2400,
-      created_time: "2023-10-20T00:00:00Z",
-      description: "Wif Coin (WIF)",
-      price: 0.00000187,
-      marketCap: 187000000,
-      num_holders: 15000,
-      change24h: 3.1,
-      change1h: 1.2,
-      liquidity: 3200000,
-      buys: 1500,
-      sells: 900,
-      volume24h: 4200000,
-    },
-    {
-      token: "5tN42n9vMi6ubp67Uy4NnmM5DMZYN8aS8GeB3bEDHr6E",
-      symbol: "BOME",
-      name: "Bome Token",
-      vol_usd: 2100000,
-      txs: 1900,
-      created_time: "2023-09-05T00:00:00Z",
-      description: "Bome Token (BOME)",
-      price: 0.00000076,
-      marketCap: 76000000,
-      num_holders: 7600,
-      change24h: -1.5,
-      change1h: -0.5,
-      liquidity: 1500000,
-      buys: 800,
-      sells: 1100,
-      volume24h: 2100000,
-    },
-    {
-      token: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
-      symbol: "BONK",
-      name: "Bonk",
-      vol_usd: 5800000,
-      txs: 3300,
-      created_time: "2023-08-10T00:00:00Z",
-      description: "Bonk (BONK)",
-      price: 0.00000215,
-      marketCap: 215000000,
-      num_holders: 21500,
-      change24h: 4.2,
-      change1h: 1.8,
-      liquidity: 4500000,
-      buys: 2200,
-      sells: 1100,
-      volume24h: 5800000,
-    },
-    {
-      token: "6LUFtdLcK3ce8JZ9WfbDsqNFT7K9yfMQP5hLyJUEi8Vu",
-      symbol: "DUPE",
-      name: "Dupe Token",
-      vol_usd: 1500000,
-      txs: 1200,
-      created_time: "2023-07-15T00:00:00Z",
-      description: "Dupe Token (DUPE)",
-      price: 0.00000056,
-      marketCap: 56000000,
-      num_holders: 5600,
-      change24h: -2.3,
-      change1h: -0.7,
-      liquidity: 1200000,
-      buys: 500,
-      sells: 700,
-      volume24h: 1500000,
-    },
-    {
-      token: "9LYGEEMJAqRSxdKXYBRMXJ4pzoZmTLqnZRF2mCGX8h4W",
-      symbol: "PEPE",
-      name: "Pepe Coin",
-      vol_usd: 3200000,
-      txs: 2100,
-      created_time: "2023-06-20T00:00:00Z",
-      description: "Pepe Coin (PEPE)",
-      price: 0.00000123,
-      marketCap: 123000000,
-      num_holders: 12300,
-      change24h: 3.7,
-      change1h: 1.5,
-      liquidity: 2800000,
-      buys: 1300,
-      sells: 800,
-      volume24h: 3200000,
-    },
-    {
-      token: "3fTR8GGL2mniJP1ycpHgvDz1qhTijKHMmPvDQcHmXYXP",
-      symbol: "FROG",
-      name: "Frog Token",
-      vol_usd: 1800000,
-      txs: 1500,
-      created_time: "2023-05-10T00:00:00Z",
-      description: "Frog Token (FROG)",
-      price: 0.00000089,
-      marketCap: 89000000,
-      num_holders: 8900,
-      change24h: 1.9,
-      change1h: 0.6,
-      liquidity: 1700000,
-      buys: 900,
-      sells: 600,
-      volume24h: 1800000,
-    },
-    {
-      token: "7KVexUFGMpYX8xkQ4K5ZfS1bLzwcwHJQqZMXYWjErG6Z",
-      symbol: "MOON",
-      name: "Moon Coin",
-      vol_usd: 2500000,
-      txs: 1700,
-      created_time: "2023-04-15T00:00:00Z",
-      description: "Moon Coin (MOON)",
-      price: 0.00000112,
-      marketCap: 112000000,
-      num_holders: 11200,
-      change24h: 2.8,
-      change1h: 1.0,
-      liquidity: 2200000,
-      buys: 1100,
-      sells: 600,
-      volume24h: 2500000,
-    },
-    {
-      token: "2QK9vxydd7WoDwvVFT5JSU8cwE9xmbJSzeqbRESiXqNL",
-      symbol: "DOGE",
-      name: "Doge Token",
-      vol_usd: 3800000,
-      txs: 2300,
-      created_time: "2023-03-20T00:00:00Z",
-      description: "Doge Token (DOGE)",
-      price: 0.00000167,
-      marketCap: 167000000,
-      num_holders: 16700,
-      change24h: 3.5,
-      change1h: 1.3,
-      liquidity: 3500000,
-      buys: 1400,
-      sells: 900,
-      volume24h: 3800000,
-    },
-  ],
-  marketCapTimeData: [
-    {
-      date: "2023-01-01",
-      marketcap: 500000000,
-      num_holders: 50000,
-      nh_diff_1d: 1000,
-      nh_diff_7d: 5000,
-      nh_diff_30d: 15000,
-    },
-    {
-      date: "2023-02-01",
-      marketcap: 550000000,
-      num_holders: 55000,
-      nh_diff_1d: 1100,
-      nh_diff_7d: 5500,
-      nh_diff_30d: 16500,
-    },
-    {
-      date: "2023-03-01",
-      marketcap: 600000000,
-      num_holders: 60000,
-      nh_diff_1d: 1200,
-      nh_diff_7d: 6000,
-      nh_diff_30d: 18000,
-    },
-    {
-      date: "2023-04-01",
-      marketcap: 650000000,
-      num_holders: 65000,
-      nh_diff_1d: 1300,
-      nh_diff_7d: 6500,
-      nh_diff_30d: 19500,
-    },
-    {
-      date: "2023-05-01",
-      marketcap: 700000000,
-      num_holders: 70000,
-      nh_diff_1d: 1400,
-      nh_diff_7d: 7000,
-      nh_diff_30d: 21000,
-    },
-    {
-      date: "2023-06-01",
-      marketcap: 750000000,
-      num_holders: 75000,
-      nh_diff_1d: 1500,
-      nh_diff_7d: 7500,
-      nh_diff_30d: 22500,
-    },
-    {
-      date: "2023-07-01",
-      marketcap: 800000000,
-      num_holders: 80000,
-      nh_diff_1d: 1600,
-      nh_diff_7d: 8000,
-      nh_diff_30d: 24000,
-    },
-    {
-      date: "2023-08-01",
-      marketcap: 850000000,
-      num_holders: 85000,
-      nh_diff_1d: 1700,
-      nh_diff_7d: 8500,
-      nh_diff_30d: 25500,
-    },
-    {
-      date: "2023-09-01",
-      marketcap: 900000000,
-      num_holders: 90000,
-      nh_diff_1d: 1800,
-      nh_diff_7d: 9000,
-      nh_diff_30d: 27000,
-    },
-    {
-      date: "2023-10-01",
-      marketcap: 950000000,
-      num_holders: 95000,
-      nh_diff_1d: 1900,
-      nh_diff_7d: 9500,
-      nh_diff_30d: 28500,
-    },
-    {
-      date: "2023-11-01",
-      marketcap: 1000000000,
-      num_holders: 100000,
-      nh_diff_1d: 2000,
-      nh_diff_7d: 10000,
-      nh_diff_30d: 30000,
-    },
-    {
-      date: "2023-12-01",
-      marketcap: 1050000000,
-      num_holders: 105000,
-      nh_diff_1d: 2100,
-      nh_diff_7d: 10500,
-      nh_diff_30d: 31500,
-    },
-  ],
-  tokenMarketCaps: [
-    {
-      date: "2023-12-01",
-      token_mint_address: "7gkgsqE2Uip7LUyrqEi8fyLPNSbn7GYu9yFgtxZwYUVa",
-      name: "Dashcoin",
-      symbol: "DASHC",
-      market_cap_usd: 142000000,
-      num_holders: 12500,
-      rn: 1,
-    },
-    {
-      date: "2023-12-01",
-      token_mint_address: "Fjq9SmWmtnETAVNbir1eXhrVANi1GDoHEA4nb4tNn7w6",
-      name: "Goon Coin",
-      symbol: "GOON",
-      market_cap_usd: 98000000,
-      num_holders: 9800,
-      rn: 2,
-    },
-    {
-      date: "2023-12-01",
-      token_mint_address: "8JUjWjvdgaP7aLQzU4YQgvFgzxpuEpJhwTCLUdZ9icFw",
-      name: "Wif Coin",
-      symbol: "WIF",
-      market_cap_usd: 187000000,
-      num_holders: 15000,
-      rn: 3,
-    },
-    {
-      date: "2023-12-01",
-      token_mint_address: "5tN42n9vMi6ubp67Uy4NnmM5DMZYN8aS8GeB3bEDHr6E",
-      name: "Bome Token",
-      symbol: "BOME",
-      market_cap_usd: 76000000,
-      num_holders: 7600,
-      rn: 4,
-    },
-    {
-      date: "2023-12-01",
-      token_mint_address: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
-      name: "Bonk",
-      symbol: "BONK",
-      market_cap_usd: 215000000,
-      num_holders: 21500,
-      rn: 5,
-    },
-    {
-      date: "2023-12-01",
-      token_mint_address: "6LUFtdLcK3ce8JZ9WfbDsqNFT7K9yfMQP5hLyJUEi8Vu",
-      name: "Dupe Token",
-      symbol: "DUPE",
-      market_cap_usd: 56000000,
-      num_holders: 5600,
-      rn: 6,
-    },
-    {
-      date: "2023-12-01",
-      token_mint_address: "9LYGEEMJAqRSxdKXYBRMXJ4pzoZmTLqnZRF2mCGX8h4W",
-      name: "Pepe Coin",
-      symbol: "PEPE",
-      market_cap_usd: 123000000,
-      num_holders: 12300,
-      rn: 7,
-    },
-    {
-      date: "2023-12-01",
-      token_mint_address: "3fTR8GGL2mniJP1ycpHgvDz1qhTijKHMmPvDQcHmXYXP",
-      name: "Frog Token",
-      symbol: "FROG",
-      market_cap_usd: 89000000,
-      num_holders: 8900,
-      rn: 8,
-    },
-    {
-      date: "2023-12-01",
-      token_mint_address: "7KVexUFGMpYX8xkQ4K5ZfS1bLzwcwHJQqZMXYWjErG6Z",
-      name: "Moon Coin",
-      symbol: "MOON",
-      market_cap_usd: 112000000,
-      num_holders: 11200,
-      rn: 9,
-    },
-    {
-      date: "2023-12-01",
-      token_mint_address: "2QK9vxydd7WoDwvVFT5JSU8cwE9xmbJSzeqbRESiXqNL",
-      name: "Doge Token",
-      symbol: "DOGE",
-      market_cap_usd: 167000000,
-      num_holders: 16700,
-      rn: 10,
-    },
-  ],
-  totalMarketCap: {
-    latest_data_at: new Date().toISOString(),
-    total_marketcap_usd: 1050000000,
-  },
-  newTokens: [
-    {
-      token_mint_address: "7gkgsqE2Uip7LUyrqEi8fyLPNSbn7GYu9yFgtxZwYUVa",
-      created_time: "2023-12-01T00:00:00Z",
-      name: "Dashcoin",
-      symbol: "DASHC",
-      market_cap_usd: 142000000,
-      num_holders: 12500,
-    },
-    {
-      token_mint_address: "Fjq9SmWmtnETAVNbir1eXhrVANi1GDoHEA4nb4tNn7w6",
-      created_time: "2023-11-15T00:00:00Z",
-      name: "Goon Coin",
-      symbol: "GOON",
-      market_cap_usd: 98000000,
-      num_holders: 9800,
-    },
-    {
-      token_mint_address: "8JUjWjvdgaP7aLQzU4YQgvFgzxpuEpJhwTCLUdZ9icFw",
-      created_time: "2023-10-20T00:00:00Z",
-      name: "Wif Coin",
-      symbol: "WIF",
-      market_cap_usd: 187000000,
-      num_holders: 15000,
-    },
-    {
-      token_mint_address: "5tN42n9vMi6ubp67Uy4NnmM5DMZYN8aS8GeB3bEDHr6E",
-      created_time: "2023-09-05T00:00:00Z",
-      name: "Bome Token",
-      symbol: "BOME",
-      market_cap_usd: 76000000,
-      num_holders: 7600,
-    },
-    {
-      token_mint_address: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
-      created_time: "2023-08-10T00:00:00Z",
-      name: "Bonk",
-      symbol: "BONK",
-      market_cap_usd: 215000000,
-      num_holders: 21500,
-    },
-  ],
-  marketStats: {
-    totalMarketCap: 1050000000,
-    volume24h: 25000000,
-    transactions24h: 18000,
-    feeEarnings24h: 75000,
-    lifetimeVolume: 750000000,
-    coinLaunches: 10,
-  },
-};
 
 // This is your Dune API key from environment variables
 const DUNE_API_KEY = process.env.DUNE_API_KEY;
@@ -521,17 +93,7 @@ export async function fetchAllTokensFromDune(): Promise<TokenData[]> {
         }
       }
     
-    // Check if data exists in cache
     
-
-    // Use mock data in preview environments
-    if (IS_PREVIEW) {
-      const mockData = [...MOCK_DATA.tokens];
-      await setInCache(CACHE_KEYS.ALL_TOKENS, mockData);
-      return mockData;
-    }
-
-    // Use the new query 5140151 which has all the data we need
     const result = await fetchDuneQueryResults(5140151);
     
     if (result && result.rows && result.rows.length > 0) {
@@ -725,12 +287,12 @@ export async function fetchTokenMarketCaps(): Promise<TokenMarketCapData[]> {
       console.error("Error getting refresh time info:", error);
     }
 
-    if(Date.now() - lastRefreshTime.getTime() > 1 * 60 * 60 *1000){
+    if(Date.now() - lastRefreshTime.getTime() < 1 * 60 * 60 *1000){
       const cachedData = await getFromCache<TokenMarketCapData[]>(
         CACHE_KEYS.TOKEN_MARKET_CAPS
       );
       if (cachedData && cachedData.length > 0) {
-        console.log("It's not time to refresh, fetching token market cap data from cache HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH", cachedData);
+        console.log("It's not time to refresh, fetching token market cap data from cache HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH");
         return cachedData;
       }
     }
@@ -761,7 +323,7 @@ export async function fetchTokenMarketCaps(): Promise<TokenMarketCapData[]> {
       } catch (error) {
         console.error("Error updating refresh timestamps:", error);
       }
-      console.log("It's time to refresh, fetching token market cap data from dune HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH", data);
+      console.log("It's time to refresh, fetching token market cap data from dune HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH");
       return data;
     }
 
@@ -788,19 +350,10 @@ export async function fetchTotalMarketCap(): Promise<TotalMarketCapData> {
       return cachedData;
     }
 
-    // Use mock data in preview environments
-    if (IS_PREVIEW) {
-      console.log("Using mock total market cap data in preview environment");
-      const mockData = { ...MOCK_DATA.totalMarketCap };
-      await setInCache(CACHE_KEYS.TOTAL_MARKET_CAP, mockData);
-      return mockData;
-    }
-
-    // IMPORTANT: Make sure we're using query 5140151 consistently
     const result = await fetchDuneQueryResults(5140151);
 
     if (result && result.rows && result.rows.length > 0) {
-      // Calculate total market cap by summing all token market caps
+
       const totalMarketCap = result.rows.reduce((sum: number, row: any) => {
         return sum + Number.parseFloat(row.market_cap_usd || 0);
       }, 0);
@@ -842,14 +395,6 @@ export async function fetchNewTokens(limit = 10): Promise<NewTokenData[]> {
     );
     if (cachedData) {
       return cachedData.slice(0, limit);
-    }
-
-    // Use mock data in preview environments
-    if (IS_PREVIEW) {
-      console.log("Using mock new token data in preview environment");
-      const mockData = [...MOCK_DATA.newTokens];
-      await setInCache(CACHE_KEYS.NEW_TOKENS, mockData);
-      return mockData.slice(0, limit);
     }
 
     const result = await fetchDuneQueryResults(5140151);
@@ -906,7 +451,7 @@ export async function fetchMarketStats(): Promise<MarketStats> {
       console.error("Error getting refresh time info:", error);
     }
 
-    if ( (Date.now() - lastRefreshTime.getTime()) < 1 * 60 * 60 * 1000) {
+    if ( (Date.now() - lastRefreshTime.getTime()) > 1 * 60 * 60 * 1000) {
       const cachedData = await getFromCache<MarketStats>(CACHE_KEYS.MARKET_STATS);
       console.log("It's not time to refresh, fetching data from cache HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH", cachedData);
       if (cachedData && cachedData.totalMarketCap !== undefined) {
@@ -1002,15 +547,6 @@ export async function fetchTokenDetails(
       return null;
     }
 
-    // Use mock data in preview environments
-    if (IS_PREVIEW) {
-      const token = MOCK_DATA.tokens.find(
-        (t) => t.symbol.toLowerCase() === symbol.toLowerCase()
-      );
-      return token || null;
-    }
-
-    // Get all tokens from cache or fetch if needed
     const allTokens = await fetchAllTokensFromDune();
     console.log("Successfully fetched all tokens data");
     // Find the token in the cache
