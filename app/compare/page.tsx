@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { Navbar } from "@/components/navbar";
 import { DashcoinCard, DashcoinCardContent, DashcoinCardHeader, DashcoinCardTitle } from "@/components/ui/dashcoin-card";
 import { Button } from "@/components/ui/button";
-import { Twitter, BarChart2, Users, ArrowRight, InfoIcon, Loader2 } from "lucide-react";
+import { Twitter, BarChart2, Users, ArrowRight, InfoIcon, Loader2, ArrowLeftRight } from "lucide-react";
 import { DashcoinLogo } from "@/components/dashcoin-logo";
 import { GrowthStatCard } from "@/components/ui/growth-stat-card";
 
@@ -44,6 +44,40 @@ const formatNumber = (num: number): string => {
     return (num / 1_000).toFixed(2) + 'K';
   }
   return num.toLocaleString();
+};
+
+// Updated calculateMultiple function
+const calculateMultiple = (value1: number, value2: number): string => {
+  if (value2 === 0) {
+    return value1 === 0 ? "0.0x" : "N/A";
+  }
+  if (value1 === 0) { // value2 is not 0 here
+    return "0.0x";
+  }
+  // Both value1 and value2 are non-zero (assuming positive metrics based on context)
+  const actualMultiple = value1 / value2;
+
+  if (actualMultiple < 0.1) {
+    return "<0.1x";
+  }
+
+  const roundedMultiple = Math.ceil(actualMultiple * 10) / 10;
+  return `${roundedMultiple.toFixed(1)}x`;
+};
+
+// Helper function to determine color class for the difference multiple
+const getDifferenceColorClass = (value1: number, value2: number, multipleString: string): string => {
+  if (multipleString === "N/A" || multipleString === "0.0x") {
+    return 'opacity-70';
+  }
+  if (value1 > value2) {
+    return 'text-green-500';
+  }
+  if (value1 < value2) {
+    return 'text-red-500';
+  }
+  // value1 === value2 (multipleString should be "1.0x")
+  return 'opacity-70'; 
 };
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -163,6 +197,20 @@ export default function ComparePage() {
     }
   };
   
+  const handleReverseCompare = () => {
+    if (!comparisonData.token1 || !comparisonData.token2) return;
+
+    setComparisonData(prevData => ({
+      token1: prevData.token2,
+      token2: prevData.token1
+    }));
+
+    // Swap the names in the input fields as well to maintain consistency
+    const currentToken1Name = token1Name;
+    setToken1Name(token2Name);
+    setToken2Name(currentToken1Name);
+  };
+
   const handleTokenSearch = (
     input: string, 
     nameSetter: React.Dispatch<React.SetStateAction<string>>,
@@ -212,12 +260,22 @@ export default function ComparePage() {
 
   let token1ScaleClass = "scale-100 transform-origin-top";
   let token2ScaleClass = "scale-100 transform-origin-top";
+  let token1IsWinner = false;
+  let token2IsWinner = false;
+  let token1AnimationClasses = "";
+  let token2AnimationClasses = "";
+  const flashyAnimations = "breathing-border breathing-shadow"; // Base flashy animations for the winner
+
   if (comparisonData.token1 && comparisonData.token2) {
     if (comparisonData.token1.marketcapgrowthperday > comparisonData.token2.marketcapgrowthperday) {
       token1ScaleClass = "scale-150 transform-origin-top";
+      token1IsWinner = true;
+      token1AnimationClasses = flashyAnimations;
     } else if (comparisonData.token2.marketcapgrowthperday > comparisonData.token1.marketcapgrowthperday) {
       token2ScaleClass = "scale-150 transform-origin-top";
-    }
+      token2IsWinner = true;
+      token2AnimationClasses = flashyAnimations;
+    } // If equal, both remain scale-100, tokenXIsWinner remains false, and no extra animations from this logic
   }
 
   let token1MarketCapColor = RED_COLOR;
@@ -248,53 +306,65 @@ export default function ComparePage() {
     <div className="min-h-screen">
       <Navbar dashcoinTradeLink={dashcoinTradeLink} />
       <main className="container mx-auto px-4 py-6">
-        <div className="mb-8">
+        <div className="mb-8 text-center">
           <h1 className="dashcoin-title text-4xl md:text-5xl text-dashYellow mb-4">TOKEN COMPARISON</h1>
-          <p className="text-xl max-w-3xl">Compare any two tokens to analyze market cap, holders, and other metrics</p>
+          <p className="text-xl max-w-3xl mx-auto">Compare any two tokens to analyze market cap, holders, and other metrics</p>
         </div>
 
         <DashcoinCard className="mb-8">
-          <DashcoinCardHeader><DashcoinCardTitle>Enter Token Names to Compare</DashcoinCardTitle></DashcoinCardHeader>
+          <DashcoinCardHeader><DashcoinCardTitle className="text-center">Enter Token Names to Compare</DashcoinCardTitle></DashcoinCardHeader>
           <DashcoinCardContent>
-            <div className="flex flex-col md:flex-row gap-4 items-end">
-              <div className="flex-1 relative" ref={token1SuggestionsRef}>
-                <label htmlFor="token1" className="block mb-2 text-sm font-medium">Token 1 Name</label>
-                <input type="text" id="token1" value={token1Name}
-                  onChange={(e) => handleTokenSearch(e.target.value, setToken1Name, setToken1Suggestions, setShowToken1Suggestions)}
-                  onFocus={() => token1Suggestions.length > 0 && setShowToken1Suggestions(true)}
-                  className="w-full px-4 py-3 rounded-md bg-dashGreen-dark border border-dashGreen-light focus:border-dashYellow focus:outline-none"
-                  placeholder="Enter token name or symbol (e.g. Dashcoin or DASHC)" autoComplete="off" />
-                {showToken1Suggestions && token1Suggestions.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-dashGreen-darker border border-dashGreen-light rounded-md shadow-lg max-h-60 overflow-y-auto">
-                    {token1Suggestions.map(token => (
-                      <div key={token.token} onClick={() => handleSuggestionClick(token.name, setToken1Name, setToken1Suggestions, setShowToken1Suggestions)}
-                        className="px-4 py-2 hover:bg-dashGreen-dark cursor-pointer">{token.name} ({token.symbol})</div>
-                    ))}
-                  </div>
-                )}
+            <form onSubmit={(e) => { e.preventDefault(); handleCompare(); }} className="flex flex-col gap-4">
+              <div className="flex flex-col md:flex-row gap-4 items-start md:items-end">
+                <div className="flex-1 relative" ref={token1SuggestionsRef}>
+                  <label htmlFor="token1" className="block mb-2 text-sm font-medium text-center w-full">Token 1 Name</label>
+                  <input type="text" id="token1" value={token1Name}
+                    onChange={(e) => handleTokenSearch(e.target.value, setToken1Name, setToken1Suggestions, setShowToken1Suggestions)}
+                    onFocus={() => token1Suggestions.length > 0 && setShowToken1Suggestions(true)}
+                    className="w-full px-4 py-3 rounded-md bg-dashGreen-dark border border-dashGreen-light focus:border-dashYellow focus:outline-none"
+                    placeholder="Enter token name or symbol (e.g. Dashcoin or DASHC)" autoComplete="off" />
+                  {showToken1Suggestions && token1Suggestions.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-dashYellow border border-dashGreen-light rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {token1Suggestions.map(token => (
+                        <div 
+                          key={token.token} 
+                          onClick={() => handleSuggestionClick(token.name, setToken1Name, setToken1Suggestions, setShowToken1Suggestions)}
+                          className="px-4 py-2 text-dashBlack hover:bg-yellow-500 hover:text-white cursor-pointer"
+                        >
+                          {token.name} ({token.symbol})
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 relative" ref={token2SuggestionsRef}>
+                  <label htmlFor="token2" className="block mb-2 text-sm font-medium text-center w-full">Token 2 Name</label>
+                  <input type="text" id="token2" value={token2Name}
+                    onChange={(e) => handleTokenSearch(e.target.value, setToken2Name, setToken2Suggestions, setShowToken2Suggestions)}
+                    onFocus={() => token2Suggestions.length > 0 && setShowToken2Suggestions(true)}
+                    className="w-full px-4 py-3 rounded-md bg-dashGreen-dark border border-dashGreen-light focus:border-dashYellow focus:outline-none"
+                    placeholder="Enter token name or symbol (e.g. Solana or SOL)" autoComplete="off" />
+                  {showToken2Suggestions && token2Suggestions.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-dashYellow border border-dashGreen-light rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {token2Suggestions.map(token => (
+                        <div 
+                          key={token.token} 
+                          onClick={() => handleSuggestionClick(token.name, setToken2Name, setToken2Suggestions, setShowToken2Suggestions)}
+                          className="px-4 py-2 text-dashBlack hover:bg-yellow-500 hover:text-white cursor-pointer"
+                        >
+                          {token.name} ({token.symbol})
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <Button type="submit" onClick={handleCompare} className="bg-dashYellow text-dashBlack hover:bg-yellow-500 hover:text-white py-6 px-8 w-full md:w-auto" disabled={isLoading}>
+                  {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading...</>) : 'Compare'}
+                </Button>
               </div>
-              <div className="flex-1 relative" ref={token2SuggestionsRef}>
-                <label htmlFor="token2" className="block mb-2 text-sm font-medium">Token 2 Name</label>
-                <input type="text" id="token2" value={token2Name}
-                  onChange={(e) => handleTokenSearch(e.target.value, setToken2Name, setToken2Suggestions, setShowToken2Suggestions)}
-                  onFocus={() => token2Suggestions.length > 0 && setShowToken2Suggestions(true)}
-                  className="w-full px-4 py-3 rounded-md bg-dashGreen-dark border border-dashGreen-light focus:border-dashYellow focus:outline-none"
-                  placeholder="Enter token name or symbol (e.g. Solana or SOL)" autoComplete="off" />
-                {showToken2Suggestions && token2Suggestions.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-dashGreen-darker border border-dashGreen-light rounded-md shadow-lg max-h-60 overflow-y-auto">
-                    {token2Suggestions.map(token => (
-                      <div key={token.token} onClick={() => handleSuggestionClick(token.name, setToken2Name, setToken2Suggestions, setShowToken2Suggestions)}
-                        className="px-4 py-2 hover:bg-dashGreen-dark cursor-pointer">{token.name} ({token.symbol})</div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <Button onClick={handleCompare} className="bg-dashYellow text-dashBlack hover:bg-dashYellow-dark py-6 px-8" disabled={isLoading}>
-                {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading...</>) : 'Compare'}
-              </Button>
-            </div>
-            {error && (<p className="mt-4 text-sm text-red-500">{error}</p>)}
-            <p className="mt-4 text-sm opacity-70 flex items-center gap-2"><InfoIcon className="h-4 w-4" />Enter the token names or symbols to compare metrics</p>
+              {error && (<p className="mt-4 text-sm text-red-500 text-center">{error}</p>)}
+              <p className="mt-2 text-sm opacity-70 flex items-center gap-2 justify-center"><InfoIcon className="h-4 w-4" />Enter the token names or symbols to compare metrics</p>
+            </form>
           </DashcoinCardContent>
         </DashcoinCard>
 
@@ -306,7 +376,13 @@ export default function ComparePage() {
                 <div className="opacity-70 text-sm mt-2">{comparisonData.token1.address.substring(0, 6)}...{comparisonData.token1.address.substring(comparisonData.token1.address.length - 4)}</div>
               </div>
               <div className="flex items-center">
-                <ArrowRight className="h-8 w-8 text-dashYellow" />
+                <button 
+                  onClick={handleReverseCompare} 
+                  className="p-2 rounded-md hover:bg-dashGreen-light focus:outline-none focus:ring-2 focus:ring-dashYellow transition-colors"
+                  aria-label="Reverse token comparison"
+                >
+                  <ArrowLeftRight className="h-8 w-8 text-dashYellow" />
+                </button>
               </div>
               <div className="flex-1 text-center p-4">
                 <h3 className="text-xl text-dashYellow">{comparisonData.token2.name} ({comparisonData.token2.symbol})</h3>
@@ -347,7 +423,12 @@ export default function ComparePage() {
                     </div>
                   </DashcoinCardContent>
                 </DashcoinCard>
-                <GrowthStatCard value={`+$${formatNumber(comparisonData.token1.marketcapgrowthperday)} / day`} label={`${comparisonData.token1.name} has added +$${formatNumber(comparisonData.token1.marketcapgrowthperday)} in marketcap per day since creation.`} className={`w-full max-w-md mx-auto mt-4 ${token1ScaleClass} transition-transform duration-300`} />
+                <GrowthStatCard 
+                  value={`+$${formatNumber(comparisonData.token1.marketcapgrowthperday)} / day`}
+                  label={`${comparisonData.token1.name} has added +$${formatNumber(comparisonData.token1.marketcapgrowthperday)} in marketcap per day since creation.`}
+                  className={`w-full mt-4 ${token1ScaleClass} ${token1AnimationClasses} transition-transform duration-300`}
+                  isWinner={token1IsWinner}
+                />
               </div>
 
               <div className="flex flex-col gap-4">
@@ -376,7 +457,12 @@ export default function ComparePage() {
                     </div>
                   </DashcoinCardContent>
                 </DashcoinCard>
-                <GrowthStatCard value={`+$${formatNumber(comparisonData.token2.marketcapgrowthperday)} / day`} label={`${comparisonData.token2.name} has added +$${formatNumber(comparisonData.token2.marketcapgrowthperday)} in marketcap per day since creation.`} className={`w-full max-w-md mx-auto mt-4 ${token2ScaleClass} transition-transform duration-300`} />
+                <GrowthStatCard 
+                  value={`+$${formatNumber(comparisonData.token2.marketcapgrowthperday)} / day`}
+                  label={`${comparisonData.token2.name} has added +$${formatNumber(comparisonData.token2.marketcapgrowthperday)} in marketcap per day since creation.`}
+                  className={`w-full mt-4 ${token2ScaleClass} ${token2AnimationClasses} transition-transform duration-300`}
+                  isWinner={token2IsWinner}
+                />
               </div>
             </div>
 
@@ -398,25 +484,49 @@ export default function ComparePage() {
                         <td className="py-3 px-4">Market Cap</td>
                         <td className="text-right py-3 px-4">${comparisonData.token1.marketCap.toLocaleString()}</td>
                         <td className="text-right py-3 px-4">${comparisonData.token2.marketCap.toLocaleString()}</td>
-                        <td className={`text-right py-3 px-4 ${comparisonData.token1.marketCap > comparisonData.token2.marketCap ? 'text-green-500' : 'text-red-500'}`}>
-                          {comparisonData.token2.marketCap !== 0 ? (((comparisonData.token1.marketCap - comparisonData.token2.marketCap) / comparisonData.token2.marketCap) * 100).toFixed(2) : (comparisonData.token1.marketCap > 0 ? "+∞" : "0.00")}%
-                        </td>
+                        {(() => {
+                          const v1 = comparisonData.token1.marketCap;
+                          const v2 = comparisonData.token2.marketCap;
+                          const multipleStr = calculateMultiple(v1, v2);
+                          const colorClass = getDifferenceColorClass(v1, v2, multipleStr);
+                          return (
+                            <td className={`text-right py-3 px-4 ${colorClass}`}>
+                              {multipleStr}
+                            </td>
+                          );
+                        })()}
                       </tr>
                       <tr className="border-b border-dashGreen-light">
                         <td className="py-3 px-4">Holders</td>
                         <td className="text-right py-3 px-4">{comparisonData.token1.holders.toLocaleString()}</td>
                         <td className="text-right py-3 px-4">{comparisonData.token2.holders.toLocaleString()}</td>
-                        <td className={`text-right py-3 px-4 ${comparisonData.token1.holders > comparisonData.token2.holders ? 'text-green-500' : 'text-red-500'}`}>
-                          {comparisonData.token2.holders !== 0 ? (((comparisonData.token1.holders - comparisonData.token2.holders) / comparisonData.token2.holders) * 100).toFixed(2) : (comparisonData.token1.holders > 0 ? "+∞" : "0.00")}%
-                        </td>
+                        {(() => {
+                          const v1 = comparisonData.token1.holders;
+                          const v2 = comparisonData.token2.holders;
+                          const multipleStr = calculateMultiple(v1, v2);
+                          const colorClass = getDifferenceColorClass(v1, v2, multipleStr);
+                          return (
+                            <td className={`text-right py-3 px-4 ${colorClass}`}>
+                              {multipleStr}
+                            </td>
+                          );
+                        })()}
                       </tr>
                       <tr className="border-b border-dashGreen-light">
-                        <td className="py-3 px-4">24h Volume</td>
+                        <td className="py-3 px-4">Total Volume</td>
                         <td className="text-right py-3 px-4">${comparisonData.token1.volume24h.toLocaleString()}</td>
                         <td className="text-right py-3 px-4">${comparisonData.token2.volume24h.toLocaleString()}</td>
-                        <td className={`text-right py-3 px-4 ${comparisonData.token1.volume24h > comparisonData.token2.volume24h ? 'text-green-500' : 'text-red-500'}`}>
-                          {comparisonData.token2.volume24h !== 0 ? (((comparisonData.token1.volume24h - comparisonData.token2.volume24h) / comparisonData.token2.volume24h) * 100).toFixed(2) : (comparisonData.token1.volume24h > 0 ? "+∞" : "0.00")}%
-                        </td>
+                        {(() => {
+                          const v1 = comparisonData.token1.volume24h;
+                          const v2 = comparisonData.token2.volume24h;
+                          const multipleStr = calculateMultiple(v1, v2);
+                          const colorClass = getDifferenceColorClass(v1, v2, multipleStr);
+                          return (
+                            <td className={`text-right py-3 px-4 ${colorClass}`}>
+                              {multipleStr}
+                            </td>
+                          );
+                        })()}
                       </tr>
                       <tr className="border-b border-dashGreen-light">
                         <td className="py-3 px-4">Launch Date</td>
@@ -430,9 +540,17 @@ export default function ComparePage() {
                         <td className="py-3 px-4">MarketCap Growth/Day</td>
                         <td className="text-right py-3 px-4">${comparisonData.token1.marketcapgrowthperday.toLocaleString()}</td>
                         <td className="text-right py-3 px-4">${comparisonData.token2.marketcapgrowthperday.toLocaleString()}</td>
-                        <td className={`text-right py-3 px-4 ${comparisonData.token1.marketcapgrowthperday > comparisonData.token2.marketcapgrowthperday ? 'text-green-500' : 'text-red-500'}`}>
-                          {comparisonData.token2.marketcapgrowthperday !== 0 ? (((comparisonData.token1.marketcapgrowthperday - comparisonData.token2.marketcapgrowthperday) / comparisonData.token2.marketcapgrowthperday) * 100).toFixed(2) : (comparisonData.token1.marketcapgrowthperday > 0 ? "+∞" : "0.00")}%
-                        </td>
+                        {(() => {
+                          const v1 = comparisonData.token1.marketcapgrowthperday;
+                          const v2 = comparisonData.token2.marketcapgrowthperday;
+                          const multipleStr = calculateMultiple(v1, v2);
+                          const colorClass = getDifferenceColorClass(v1, v2, multipleStr);
+                          return (
+                            <td className={`text-right py-3 px-4 ${colorClass}`}>
+                              {multipleStr}
+                            </td>
+                          );
+                        })()}
                       </tr>
                     </tbody>
                   </table>

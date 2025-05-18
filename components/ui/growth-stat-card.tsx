@@ -8,9 +8,10 @@ interface GrowthStatCardProps {
   value: string
   label?: string
   className?: string
+  isWinner?: boolean;
 }
 
-export function GrowthStatCard({ value, label = "since launch", className = "" }: GrowthStatCardProps) {
+export function GrowthStatCard({ value, label = "since launch", className = "", isWinner = false }: GrowthStatCardProps) {
   // Intersection Observer for entrance animation
   const [isVisible, setIsVisible] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
@@ -49,39 +50,68 @@ export function GrowthStatCard({ value, label = "since launch", className = "" }
         <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(0,0,0,0.1)_25%,rgba(0,0,0,0.1)_50%,transparent_50%,transparent_75%,rgba(0,0,0,0.1)_75%)] bg-[size:8px_8px] opacity-10 animate-tactical-scan"></div>
       </div>
 
-      {/* Bullet hole effects - randomly positioned */}
-      {[...Array(5)].map((_, i) => (
-        <div
-          key={i}
-          className="absolute w-2 h-2 rounded-full bg-dashBlack"
-          style={{
-            top: `${10 + Math.random() * 80}%`,
-            left: `${10 + Math.random() * 80}%`,
-            boxShadow: "0 0 0 1px rgba(255,215,0,0.5)",
-            transform: "rotate(45deg)",
-          }}
-        >
-          <div className="absolute inset-0 border border-dashYellow-dark rounded-full transform scale-150 opacity-50"></div>
-        </div>
-      ))}
+      {/* Bullet hole effects - Conditionally render if isWinner and adjust positioning */}
+      {isWinner && [...Array(3)].map((_, i) => { // Reduced to 3 bullet holes for less clutter
+        // Position bullet holes in the outer 20% of the card, avoiding direct center line
+        let topPos, leftPos;
+        const randomEdge = Math.random(); // Determine if it's top/bottom or left/right heavy
+        const randomPrimary = Math.random() * 20; // 0-20%
+        const randomSecondary = Math.random() * 60 + 20; // 20-80% to spread along the other axis
+
+        if (randomEdge < 0.25) { // Top edge
+          topPos = randomPrimary;
+          leftPos = randomSecondary;
+        } else if (randomEdge < 0.5) { // Bottom edge
+          topPos = 100 - randomPrimary;
+          leftPos = randomSecondary;
+        } else if (randomEdge < 0.75) { // Left edge
+          topPos = randomSecondary;
+          leftPos = randomPrimary;
+        } else { // Right edge
+          topPos = randomSecondary;
+          leftPos = 100 - randomPrimary;
+        }
+
+        return (
+          <div
+            key={i}
+            className="absolute w-2 h-2 rounded-full bg-dashBlack"
+            style={{
+              top: `${Math.max(5, Math.min(95, topPos))}%`, // Clamp to ensure visibility
+              left: `${Math.max(5, Math.min(95, leftPos))}%`,
+              boxShadow: "0 0 0 1px rgba(255,215,0,0.5)",
+              transform: "rotate(45deg)",
+            }}
+          >
+            <div className="absolute inset-0 border border-dashYellow-dark rounded-full transform scale-150 opacity-50"></div>
+          </div>
+        );
+      })}
 
       {/* Main content with military icons */}
       <div className="relative z-10 flex flex-col items-center justify-center p-6 text-center">
-        {/* Icons: Target/crosshair and trending up */}
-        <div className="flex items-center justify-center mb-2 gap-2">
+        {/* Icons: Target/crosshair and trending up. Structure always rendered for consistent height. Visibility and active states depend on isWinner. */}
+        <div className={`flex items-center justify-center mb-2 gap-2 ${!isWinner ? 'invisible' : ''}`}>
           <div className="relative">
-            <Target className="h-8 w-8 text-dashYellow animate-pulse" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-1 h-1 bg-dashRed rounded-full"></div>
-            </div>
+            {/* Target icon: animate only if winner, transparent otherwise */}
+            <Target className={`h-8 w-8 ${isWinner ? 'text-dashYellow animate-pulse' : 'text-transparent'}`} />
+            {/* Red dot overlay for Target: only if winner */}
+            {isWinner && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-1 h-1 bg-dashRed rounded-full"></div>
+              </div>
+            )}
           </div>
-          <TrendingUp className="h-7 w-7 text-dashYellow" />
+          {/* TrendingUp icon: visible and yellow only if winner, transparent otherwise */}
+          <TrendingUp className={`h-7 w-7 ${isWinner ? 'text-dashYellow' : 'text-transparent'}`} />
         </div>
 
-        {/* Main value with lightning bolt alert */}
-        <div className="dashcoin-text text-4xl font-bold text-dashYellow animate-tactical-pulse relative">
+        {/* Main value with lightning bolt alert - Conditionally render Zap icon if isWinner */}
+        <div className={`dashcoin-text text-4xl font-bold text-dashYellow relative ${isWinner ? 'animate-tactical-pulse' : ''}`}>
           {value}
-          <Zap className="absolute -right-6 -top-2 h-5 w-5 text-dashYellow animate-tactical-flash" />
+          {isWinner && (
+            <Zap className="absolute -right-6 -top-2 h-5 w-5 text-dashYellow animate-tactical-flash" />
+          )}
         </div>
 
         {/* Label with blinking indicator lights */}
