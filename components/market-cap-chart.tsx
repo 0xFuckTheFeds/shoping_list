@@ -6,8 +6,6 @@ import type { MarketCapTimeData } from "@/types/dune"
 import { formatCurrency } from "@/lib/utils"
 import { DuneQueryLink } from "@/components/dune-query-link"
 
-// We'll use Chart.js for the charts
-// This would normally be installed via npm, but for this example we'll load it from CDN
 declare global {
   interface Window {
     Chart: any
@@ -22,9 +20,6 @@ export function MarketCapChart({ data }: MarketCapChartProps) {
   const chartRef = useRef<HTMLCanvasElement>(null)
   const chartInstance = useRef<any>(null)
 
-  // Add defensive programming to handle potential null or undefined values
-
-  // Update the createChart function to handle potential null or undefined values
   const createChart = () => {
     if (chartInstance.current) {
       chartInstance.current.destroy()
@@ -33,14 +28,12 @@ export function MarketCapChart({ data }: MarketCapChartProps) {
     const ctx = chartRef.current?.getContext("2d")
     if (!ctx || !data || data.length === 0) return
 
-    // Sort data by date to ensure chronological order (oldest to newest)
     const sortedData = [...data].sort((a, b) => {
       const dateA = a.date ? new Date(a.date).getTime() : 0
       const dateB = b.date ? new Date(b.date).getTime() : 0
       return dateA - dateB
     })
 
-    // Prepare data for the chart with null checks
     const chartData = {
       labels: sortedData.map((item) => (item.date ? new Date(item.date).toLocaleDateString() : "Unknown")),
       datasets: [
@@ -124,7 +117,6 @@ export function MarketCapChart({ data }: MarketCapChartProps) {
   }
 
   useEffect(() => {
-    // Load Chart.js from CDN
     const script = document.createElement("script")
     script.src = "https://cdn.jsdelivr.net/npm/chart.js"
     script.async = true

@@ -69,6 +69,7 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
   const [filteredTokens, setFilteredTokens] = useState<TokenData[]>(initialData.tokens || [])
   const [researchScores, setResearchScores] = useState<ResearchScoreData[]>([])
   const [isLoadingResearch, setIsLoadingResearch] = useState(false)
+  const [isSortingLocally, setIsSortingLocally] = useState(false)
 
   useEffect(() => {
     const getResearchScores = async () => {
@@ -151,18 +152,75 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
   }, [searchTerm]);
 
   useEffect(() => {
-    fetchData()
-  }, [currentPage, itemsPerPage, sortField, sortDirection])
+    // Only fetch from API for specific sort fields that are handled server-side
+    if (["researchScore", "name", "symbol"].includes(sortField) || isSortingLocally) {
+      sortTokensLocally();
+    } else {
+      fetchData();
+    }
+  }, [currentPage, itemsPerPage, sortField, sortDirection, isSortingLocally]);
 
   const handleSort = (field: string) => {
     if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
-      setSortField(field)
-      setSortDirection("desc")
+      setSortField(field);
+      setSortDirection("desc");
     }
-    setCurrentPage(1)
+    
+    // Set flag for fields that need local sorting
+    setIsSortingLocally(["researchScore", "name", "created_time", "symbol"].includes(field));
+    
+    setCurrentPage(1);
   }
+
+  const sortTokensLocally = () => {
+    if (!filteredTokens.length) return;
+    
+    const sortedTokens = [...filteredTokens].sort((a, b) => {
+      let valueA, valueB;
+      
+      switch(sortField) {
+        case "name":
+          valueA = (a.name || "").toString().toLowerCase();
+          valueB = (b.name || "").toString().toLowerCase();
+          return sortDirection === "asc" 
+            ? valueA.localeCompare(valueB)
+            : valueB.localeCompare(valueA);
+            
+        case "symbol":
+          valueA = (a.symbol || "").toString().toLowerCase();
+          valueB = (b.symbol || "").toString().toLowerCase();
+          return sortDirection === "asc" 
+            ? valueA.localeCompare(valueB)
+            : valueB.localeCompare(valueA);
+            
+        case "created_time":
+          valueA = a.created_time ? new Date(a.created_time).getTime() : 0;
+          valueB = b.created_time ? new Date(b.created_time).getTime() : 0;
+          return sortDirection === "asc" 
+            ? valueA - valueB
+            : valueB - valueA;
+            
+        case "researchScore":
+          const scoreA = getResearchScore(a.symbol || '');
+          const scoreB = getResearchScore(b.symbol || '');
+          
+          if (scoreA === null && scoreB === null) return 0;
+          if (scoreA === null) return sortDirection === "asc" ? -1 : 1;
+          if (scoreB === null) return sortDirection === "asc" ? 1 : -1;
+          
+          return sortDirection === "asc" 
+            ? scoreA - scoreB 
+            : scoreB - scoreA;
+            
+        default:
+          return 0;
+      }
+    });
+    
+    setFilteredTokens(sortedTokens);
+  };
 
   const renderSortIndicator = (field: string) => {
     if (sortField !== field) return null
@@ -180,35 +238,6 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
     const scoreData = researchScores.find(item => item.symbol.toUpperCase() === normalizedSymbol);
     return scoreData?.score || null;
   }
-
-  // Function to sort tokens by research score
-  const sortByResearchScore = () => {
-    if (!filteredTokens.length || isLoadingResearch) return;
-    
-    const sortedTokens = [...filteredTokens].sort((a, b) => {
-      const scoreA = getResearchScore(a.symbol || '');
-      const scoreB = getResearchScore(b.symbol || '');
-      
-      // Handle null scores (put them at the bottom)
-      if (scoreA === null && scoreB === null) return 0;
-      if (scoreA === null) return sortDirection === "asc" ? -1 : 1;
-      if (scoreB === null) return sortDirection === "asc" ? 1 : -1;
-      
-      // Normal comparison for non-null scores
-      return sortDirection === "asc" 
-        ? scoreA - scoreB 
-        : scoreB - scoreA;
-    });
-    
-    setFilteredTokens(sortedTokens);
-  };
-
-  // Apply research score sorting when needed
-  useEffect(() => {
-    if (sortField === "researchScore" && !isLoadingResearch) {
-      sortByResearchScore();
-    }
-  }, [sortField, sortDirection, researchScores]);
 
   return (
     <div className="space-y-4">
@@ -233,6 +262,8 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
             <option value="marketCap">Market Cap</option>
             <option value="num_holders">Holders</option>
             <option value="created_time">Created Date</option>
+            <option value="name">Name</option>
+            <option value="symbol">Token</option>
             <option value="researchScore">Research Score</option>
           </select>
           <select

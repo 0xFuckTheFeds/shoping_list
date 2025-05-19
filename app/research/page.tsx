@@ -7,7 +7,6 @@ import { Twitter, Search, Calendar, Clock, Hexagon, BookOpen, ArrowRight } from 
 import { DashcoinLogo } from "@/components/dashcoin-logo";
 import { researchPosts } from "@/data/research-data";
 
-// Add global styles for custom scrollbar
 const globalStyles = `
   /* Hide scrollbar for Chrome, Safari and Opera */
   .no-scrollbar::-webkit-scrollbar {
@@ -22,43 +21,29 @@ const globalStyles = `
 `;
 
 export default function ResearchPage() {
-  // Dashcoin trade link (used for navbar)
   const dashcoinTradeLink = "https://axiom.trade/t/fRfKGCriduzDwSudCwpL7ySCEiboNuryhZDVJtr1a1C/dashc";
-  // Dashcoin X (Twitter) link
   const dashcoinXLink = "https://x.com/dune_dashcoin";
-  
-  // Client-side state
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPostId, setSelectedPostId] = useState("1");
-  
-  // Function to filter posts based on search query
   const filteredPosts = researchPosts.filter((post) => 
     post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     post.coinName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     post.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  
-  // Get the selected post
   const selectedPost = researchPosts.find((post) => post.id === selectedPostId) || researchPosts[0];
-
-  // Select a post from sidebar
   const handleSelectPost = (id: string) => {
     setSelectedPostId(id);
-    // Optional: Scroll to top of article content when new post is selected
     document.getElementById('content-top')?.scrollIntoView({ behavior: 'smooth' });
   };
   
-  // Effect to set the height of the sidebar container on initial load and window resize
   useEffect(() => {
     const setContainerHeights = () => {
       const viewportHeight = window.innerHeight;
       const navbarHeight = document.querySelector('nav')?.offsetHeight || 0;
       const headerHeight = document.querySelector('.dashcoin-title')?.parentElement?.offsetHeight || 0;
       const footerHeight = document.querySelector('footer')?.offsetHeight || 0;
+      const availableHeight = viewportHeight - navbarHeight - headerHeight - footerHeight - 48; 
       
-      const availableHeight = viewportHeight - navbarHeight - headerHeight - footerHeight - 48; // 48px for padding
-      
-      // Set the height ONLY for the sidebar content container
       document.querySelectorAll('.sidebar-content-container').forEach((el) => {
         (el as HTMLElement).style.height = `${availableHeight}px`;
       });

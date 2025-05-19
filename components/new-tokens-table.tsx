@@ -10,7 +10,6 @@ interface NewTokensTableProps {
 }
 
 export function NewTokensTable({ data }: NewTokensTableProps) {
-  // Filter tokens to only show those with market cap above $10,000
   const filteredTokens = data.filter((token) => (token.market_cap_usd || 0) > 10000)
 
   return (

@@ -27,9 +27,7 @@ export function CopyAddress({
 }: CopyAddressProps) {
   const [copied, setCopied] = useState(false)
 
-  // Ensure address is a string
   const safeAddress = typeof address === "string" ? address : String(address || "")
-
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation()
     try {
@@ -41,7 +39,6 @@ export function CopyAddress({
     }
   }
 
-  // Format address for display
   const displayAddress =
     truncate && safeAddress.length > displayLength * 2
       ? `${safeAddress.substring(0, displayLength)}...${safeAddress.substring(safeAddress.length - 4)}`

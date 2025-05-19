@@ -64,13 +64,11 @@ async function fetchDuneQueryResults(queryId: number, limit = 1000) {
 
 export async function fetchAllTokensFromDune(): Promise<TokenData[]> {
   try {
-    // Check if we need to refresh (1 hour interval)
     const { lastRefreshTime } = await getQueryTimeUntilNextRefresh(
       CACHE_KEYS.ALL_TOKENS_LAST_REFRESH,
       CACHE_DURATION
     );
 
-    // If last refresh was less than 1 hour ago, use cached data
     if ((Date.now() - lastRefreshTime.getTime()) < CACHE_DURATION) {
       const cachedData = await getFromCache<TokenData[]>(CACHE_KEYS.ALL_TOKENS);
       if (cachedData && cachedData.length > 0) {
@@ -92,14 +90,14 @@ export async function fetchAllTokensFromDune(): Promise<TokenData[]> {
           txs: Number.parseInt(row.txs || 0),
           created_time: row.created_time || new Date().toISOString(),
           description: row.name ? `${row.name} (${row.symbol || ""})` : "",
-          price: 0, // Not available in this query
+          price: 0, 
           marketCap: Number.parseFloat(row.market_cap_usd || 0),
           num_holders: Number.parseInt(row.num_holders || 0),
-          change24h: 0, // Not available in this query
-          change1h: 0, // Not available in this query
-          liquidity: 0, // Not available in this query
-          buys: 0, // Not available in this query
-          sells: 0, // Not available in this query
+          change24h: 0, 
+          change1h: 0, 
+          liquidity: 0, 
+          buys: 0, 
+          sells: 0, 
           volume24h: Number.parseFloat(row.vol_usd || 0),
           token_url: row.token_url || "",
           first_trade_time: row.first_trade_time || "",
@@ -110,10 +108,7 @@ export async function fetchAllTokensFromDune(): Promise<TokenData[]> {
         (a: any, b: any) => (b.marketCap || 0) - (a.marketCap || 0)
       );
 
-      // Store the data in cache
       await setInCache(CACHE_KEYS.ALL_TOKENS, sortedTokens);
-      
-      // Update the last refresh time for this specific query
       await setQueryLastRefreshTime(CACHE_KEYS.ALL_TOKENS_LAST_REFRESH);
       
       return sortedTokens;
@@ -196,13 +191,11 @@ export async function fetchTokenData(): Promise<TokenData[]> {
 export async function fetchMarketCapOverTime(): Promise<MarketCapTimeData[]> {
   const MARKET_CAP_QUERY_ID = 5119241;
   try {
-    // Check if we need to refresh (12 hour interval)
     const { lastRefreshTime } = await getQueryTimeUntilNextRefresh(
       CACHE_KEYS.MARKET_CAP_TIME_LAST_REFRESH,
       CACHE_DURATION_LONG
     );
 
-    // If last refresh was less than 12 hours ago, use cached data
     if ((Date.now() - lastRefreshTime.getTime()) < CACHE_DURATION_LONG) {
       const cachedData = await getFromCache<MarketCapTimeData[]>(CACHE_KEYS.MARKET_CAP_TIME);
       if (cachedData && cachedData.length > 0) {
@@ -224,10 +217,7 @@ export async function fetchMarketCapOverTime(): Promise<MarketCapTimeData[]> {
         nh_diff_30d: Number.parseFloat(row.nh_diff_30d || 0),
       }));
 
-      // Store in cache
       await setInCache(CACHE_KEYS.MARKET_CAP_TIME, data);
-      
-      // Update the last refresh time for this specific query
       await setQueryLastRefreshTime(CACHE_KEYS.MARKET_CAP_TIME_LAST_REFRESH);
       
       return data;
@@ -245,13 +235,11 @@ export async function fetchMarketCapOverTime(): Promise<MarketCapTimeData[]> {
 
 export async function fetchTokenMarketCaps(): Promise<TokenMarketCapData[]> {
   try {
-    // Check if we need to refresh (1 hour interval)
     const { lastRefreshTime } = await getQueryTimeUntilNextRefresh(
       CACHE_KEYS.TOKEN_MARKET_CAPS_LAST_REFRESH,
       CACHE_DURATION
     );
     
-    // If last refresh was less than 1 hour ago, use cached data
     if ((Date.now() - lastRefreshTime.getTime()) < CACHE_DURATION) {
       const cachedData = await getFromCache<TokenMarketCapData[]>(
         CACHE_KEYS.TOKEN_MARKET_CAPS
@@ -278,10 +266,7 @@ export async function fetchTokenMarketCaps(): Promise<TokenMarketCapData[]> {
         rn: index + 1,
       }));
 
-      // Store in cache
       await setInCache(CACHE_KEYS.TOKEN_MARKET_CAPS, data);
-      
-      // Update the last refresh time for this specific query
       await setQueryLastRefreshTime(CACHE_KEYS.TOKEN_MARKET_CAPS_LAST_REFRESH);
       
       return data;
@@ -368,7 +353,6 @@ export async function fetchNewTokens(limit = 10): Promise<NewTokenData[]> {
         num_holders: Number.parseInt(row.num_holders || 0),
       }));
 
-      // Store in cache
       await setInCache(CACHE_KEYS.NEW_TOKENS, data);
       return data.slice(0, limit);
     }
@@ -382,13 +366,11 @@ export async function fetchNewTokens(limit = 10): Promise<NewTokenData[]> {
 
 export async function fetchMarketStats(): Promise<MarketStats> {
   try {
-    // Check if we need to refresh (1 hour interval)
     const { lastRefreshTime } = await getQueryTimeUntilNextRefresh(
       CACHE_KEYS.MARKET_STATS_LAST_REFRESH,
       CACHE_DURATION
     );
     
-    // If last refresh was less than 1 hour ago, use cached data
     if ((Date.now() - lastRefreshTime.getTime()) < CACHE_DURATION) {
       const cachedData = await getFromCache<MarketStats>(CACHE_KEYS.MARKET_STATS);
       if (cachedData && cachedData.totalMarketCap !== undefined) {
@@ -422,10 +404,7 @@ export async function fetchMarketStats(): Promise<MarketStats> {
         coinLaunches,
       };
 
-      // Store in cache
       await setInCache(CACHE_KEYS.MARKET_STATS, data);
-      
-      // Update the last refresh time for this specific query
       await setQueryLastRefreshTime(CACHE_KEYS.MARKET_STATS_LAST_REFRESH);
       
       return data;

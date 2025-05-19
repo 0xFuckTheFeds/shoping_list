@@ -15,7 +15,6 @@ export function MarketCapPie({ data }: MarketCapPieProps) {
   const chartInstance = useRef<any>(null)
 
   useEffect(() => {
-    // Load Chart.js from CDN
     const script = document.createElement("script")
     script.src = "https://cdn.jsdelivr.net/npm/chart.js"
     script.async = true
@@ -40,9 +39,6 @@ export function MarketCapPie({ data }: MarketCapPieProps) {
     }
   }, [data])
 
-  // Add defensive programming to handle potential null or undefined values
-
-  // Update the createChart function to handle potential null or undefined values
   const createChart = () => {
     if (chartInstance.current) {
       chartInstance.current.destroy()
@@ -51,30 +47,26 @@ export function MarketCapPie({ data }: MarketCapPieProps) {
     const ctx = chartRef.current?.getContext("2d")
     if (!ctx || !data || data.length === 0) return
 
-    // Take top 10 tokens by market cap with null checks
     const topTokens = [...data]
       .filter((token) => token && token.market_cap_usd !== undefined)
       .sort((a, b) => (b.market_cap_usd || 0) - (a.market_cap_usd || 0))
       .slice(0, 10)
 
-    // If no tokens with market cap, return
     if (topTokens.length === 0) return
 
-    // Generate colors for each token
     const colors = [
-      "#ffd700", // dashYellow
-      "#66cc33", // dashGreen
-      "#ff6666", // dashRed
-      "#0077cc", // dashBlue-light
-      "#99dd66", // dashGreen-light
-      "#e6b800", // dashYellow-dark
-      "#339900", // dashGreen-dark
-      "#ff9999", // lighter red
-      "#00aaff", // dashBlue-grid
-      "#cccccc", // gray
+      "#ffd700", 
+      "#66cc33", 
+      "#ff6666", 
+      "#0077cc", 
+      "#99dd66", 
+      "#e6b800", 
+      "#339900", 
+      "#ff9999", 
+      "#00aaff", 
+      "#cccccc", 
     ]
 
-    // Prepare data for the chart with null checks
     const chartData = {
       labels: topTokens.map((item) => item.symbol || "Unknown"),
       datasets: [

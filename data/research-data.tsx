@@ -1,4 +1,3 @@
-// data/research-data.tsx
 
 export const researchPosts = [
   {
@@ -7,7 +6,7 @@ export const researchPosts = [
     coinName: "Dashcoin",
     author: "Dr. Alex Chen",
     publishDate: "May 15, 2025",
-    imageUrl: "/images/dashcoin-banner.png", // This would be a placeholder
+    imageUrl: "/images/dashcoin-banner.png", 
     description: "An analysis of Dashcoin's innovative consensus mechanism and its implications for the DeFi ecosystem.",
     content: `
       <h2>Introduction to Dashcoin</h2>

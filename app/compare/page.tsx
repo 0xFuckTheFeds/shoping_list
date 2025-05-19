@@ -1,4 +1,3 @@
-// app/compare/page.tsx
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -46,15 +45,13 @@ const formatNumber = (num: number): string => {
   return num.toLocaleString();
 };
 
-// Updated calculateMultiple function
 const calculateMultiple = (value1: number, value2: number): string => {
   if (value2 === 0) {
     return value1 === 0 ? "0.0x" : "N/A";
   }
-  if (value1 === 0) { // value2 is not 0 here
+  if (value1 === 0) { 
     return "0.0x";
   }
-  // Both value1 and value2 are non-zero (assuming positive metrics based on context)
   const actualMultiple = value1 / value2;
 
   if (actualMultiple < 0.1) {
@@ -65,7 +62,6 @@ const calculateMultiple = (value1: number, value2: number): string => {
   return `${roundedMultiple.toFixed(1)}x`;
 };
 
-// Helper function to determine color class for the difference multiple
 const getDifferenceColorClass = (value1: number, value2: number, multipleString: string): string => {
   if (multipleString === "N/A" || multipleString === "0.0x") {
     return 'opacity-70';
@@ -76,7 +72,6 @@ const getDifferenceColorClass = (value1: number, value2: number, multipleString:
   if (value1 < value2) {
     return 'text-red-500';
   }
-  // value1 === value2 (multipleString should be "1.0x")
   return 'opacity-70'; 
 };
 
@@ -212,7 +207,6 @@ export default function ComparePage() {
       token2: prevData.token1
     }));
 
-    // Swap the names in the input fields as well to maintain consistency
     const currentToken1Name = token1Name;
     setToken1Name(token2Name);
     setToken2Name(currentToken1Name);
@@ -282,7 +276,7 @@ export default function ComparePage() {
       token2ScaleClass = "scale-150 transform-origin-top";
       token2IsWinner = true;
       token2AnimationClasses = flashyAnimations;
-    } // If equal, both remain scale-100, tokenXIsWinner remains false, and no extra animations from this logic
+    }
   }
 
   let token1MarketCapColor = RED_COLOR;
