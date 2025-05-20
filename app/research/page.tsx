@@ -116,12 +116,9 @@ export default function ResearchPage() {
 
         
         const data = await response.json();
-        console.log("fetched data from db", data);
-        
-        // Map MongoDB _id to id for compatibility with existing code
         const formattedArticles = data.map((article: any) => ({
           ...article,
-          id: article._id // Keep both _id and id
+          id: article._id 
         }));
         
         setArticles(formattedArticles);

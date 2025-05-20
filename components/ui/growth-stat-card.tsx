@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { TrendingUp, Target, Zap } from 'lucide-react'
-import { DashcoinCard } from "@/components/ui/dashcoin-card" // Base card component
+import { DashcoinCard } from "@/components/ui/dashcoin-card" 
 
 interface GrowthStatCardProps {
   value: string

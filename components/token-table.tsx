@@ -179,7 +179,6 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
     return () => clearTimeout(timer);
   }, [refreshCountdown, fetchDexscreenerData]);
   
-  // Fetch data when page changes or initial load
   useEffect(() => {
     fetchDexscreenerData();
   }, [currentPage, fetchDexscreenerData]);

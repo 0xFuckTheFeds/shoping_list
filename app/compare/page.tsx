@@ -281,7 +281,7 @@ export default function ComparePage() {
   let token2IsWinner = false;
   let token1AnimationClasses = "";
   let token2AnimationClasses = "";
-  const flashyAnimations = "breathing-border breathing-shadow"; // Base flashy animations for the winner
+  const flashyAnimations = "breathing-border breathing-shadow"; 
 
   if (comparisonData.token1 && comparisonData.token2) {
     if (comparisonData.token1.marketcapgrowthperday > comparisonData.token2.marketcapgrowthperday) {

@@ -203,7 +203,6 @@ export const fetchDexscreenerTokensData = cache(
     }
 
     try {
-      // Updated to match the URL format in your example
       const response = await fetchWithRetry(`https://api.dexscreener.com/tokens/v1/solana/${tokenAddress}`);
 
       if (!response.ok) {
