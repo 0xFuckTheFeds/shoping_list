@@ -171,7 +171,10 @@ export default function ResearchPage() {
       
       if (file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
         parsedContent = await processDocxFile(file);
-      } else if (file.name.endsWith('.txt') || file.name.endsWith('.html') || file.name.endsWith('.md')) {
+      } else if (file.name.endsWith('.html')){
+        const content = await readFileContent(file);
+        parsedContent = parseHtmlContent(content, file.name);
+      } else if (file.name.endsWith('.txt') || file.name.endsWith('.md')) {
         const content = await readFileContent(file);
         parsedContent = parseTextContent(content, file.name);
       } else if (file.name.endsWith('.json')) {
@@ -419,6 +422,69 @@ export default function ResearchPage() {
     }
   };
   
+  const parseHtmlContent = (content: string, fileName: string) => {
+    try {
+      const parser = new DOMParser();
+      const htmlDoc = parser.parseFromString(content, 'text/html');
+      
+      let title = htmlDoc.title || '';
+      
+      if (!title) {
+        const h1 = htmlDoc.querySelector('h1');
+        title = h1 ? h1.textContent?.trim() || '' : '';
+      }
+      
+      if (!title) {
+        title = fileName.replace(/\.[^/.]+$/, "");
+      }
+      
+      let coinName = '';
+      const metaCoin = htmlDoc.querySelector('meta[name="coin"], meta[name="token"], meta[name="symbol"]');
+      
+      if (metaCoin && metaCoin.getAttribute('content')) {
+        coinName = metaCoin.getAttribute('content') || '';
+      } else {
+        const coinInTitleMatch = title.match(/([A-Za-z]+\s*Coin)|(^|\s)([A-Z]{3,5})(\s|$)/i);
+        if (coinInTitleMatch) {
+          coinName = (coinInTitleMatch[1] || coinInTitleMatch[3]).replace(/\s+/g, '');
+        } else if (title.toLowerCase().includes('token') || title.toLowerCase().includes('coin')) {
+          const words = title.split(/\s+/);
+          coinName = words.find(word => word.length >= 2 && word.length <= 5 && word === word.toUpperCase()) || words[0];
+        } else {
+          const tokenTickers = htmlDoc.querySelectorAll('.token-ticker, .token-symbol');
+          if (tokenTickers.length > 0) {
+            coinName = tokenTickers[0].textContent?.trim() || '';
+          } else {
+            coinName = title.split(/\s+/)[0];
+          }
+        }
+      }
+      
+      let description = '';
+      const metaDescription = htmlDoc.querySelector('meta[name="description"]');
+      
+      if (metaDescription && metaDescription.getAttribute('content')) {
+        description = metaDescription.getAttribute('content') || '';
+      } else {
+        const firstParagraph = htmlDoc.querySelector('p');
+        description = firstParagraph ? firstParagraph.textContent?.trim().substring(0, 150) || '' : '';
+      }
+      
+      const bodyContent = htmlDoc.body.innerHTML;
+      
+      return {
+        title,
+        coinName,
+        description: description || 'HTML document about ' + coinName,
+        author: 'Research Document',
+        content: bodyContent
+      };
+    } catch (error) {
+      console.error("HTML parsing error:", error);
+      return parseTextContent(content, fileName);
+    }
+  };
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {

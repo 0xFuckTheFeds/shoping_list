@@ -199,7 +199,7 @@ export default function TokenResearchPage({ params }: { params: { symbol: string
   ];
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-6xl">
+    <div className="container mx-auto px-4 py-6">
       <header className="container mx-auto py-6 px-4">
         <div className="flex justify-between items-center">
           <DashcoinLogo size={48} />

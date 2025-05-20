@@ -45,8 +45,6 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
       try {
         const scores = await fetchTokenResearch();
         setResearchScores(scores);
-
-        console.log("hhhhhhhhhhhhhhhhhhhhhhhhhscore from google sheet", scores)
       } catch (error) {
         console.error("Error fetching research scores:", error);
       } finally {
@@ -413,15 +411,13 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
                   const tokenSymbol = getTokenProperty(token, "symbol", "???")
                   const researchScore = getResearchScore(tokenSymbol)
 
-                  console.log('HHHHHHHHHHresearch score', researchScore);
-
                   return (
                     <tr
                       key={index}
                       className="border-b border-dashGreen-light hover:bg-dashGreen-card dark:hover:bg-dashGreen-cardDark"
                     >
                       <td className="py-3 px-4">
-                        <Link href={`/token/${tokenSymbol}`} className="hover:text-dashYellow">
+                        <Link href={`/tokendetail/${tokenSymbol}`} className="hover:text-dashYellow">
                           <div>
                             <p className="font-bold">{tokenSymbol}</p>
                             {tokenAddress && (
