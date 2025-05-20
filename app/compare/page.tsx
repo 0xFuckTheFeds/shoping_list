@@ -135,7 +135,6 @@ export default function ComparePage() {
         setIsLoading(false);
       }
     }
-
     fetchTokens();
   }, []);
 
@@ -204,6 +203,10 @@ export default function ComparePage() {
       }
       const token1Data = convertTokenData(token1);
       const token2Data = convertTokenData(token2);
+
+      console.log('TOKEN! ---------------------------->', token1Data)
+      console.log("TOKEN2---------------->", token2Data);
+
       setComparisonData({ token1: token1Data, token2: token2Data });
       setIsComparing(true);
     } catch (err) {
@@ -249,12 +252,12 @@ export default function ComparePage() {
   };
 
   const handleSuggestionClick = (
-    tokenName: string,
+    tokenAddress: string,
     nameSetter: React.Dispatch<React.SetStateAction<string>>,
     suggestionsSetter: React.Dispatch<React.SetStateAction<TokenData[]>>,
     showSuggestionsSetter: React.Dispatch<React.SetStateAction<boolean>>
   ) => {
-    nameSetter(tokenName);
+    nameSetter(tokenAddress);
     suggestionsSetter([]);
     showSuggestionsSetter(false);
   };
@@ -345,7 +348,7 @@ export default function ComparePage() {
                       {token1Suggestions.map(token => (
                         <div 
                           key={token.token} 
-                          onClick={() => handleSuggestionClick(token.name, setToken1Name, setToken1Suggestions, setShowToken1Suggestions)}
+                          onClick={() => handleSuggestionClick(token.token, setToken1Name, setToken1Suggestions, setShowToken1Suggestions)}
                           className="px-4 py-2 text-dashBlack hover:bg-yellow-500 hover:text-white cursor-pointer"
                         >
                           {token.name} ({token.symbol})
@@ -367,7 +370,7 @@ export default function ComparePage() {
                       {token2Suggestions.map(token => (
                         <div 
                           key={token.token} 
-                          onClick={() => handleSuggestionClick(token.name, setToken2Name, setToken2Suggestions, setShowToken2Suggestions)}
+                          onClick={() => handleSuggestionClick(token.token, setToken2Name, setToken2Suggestions, setShowToken2Suggestions)}
                           className="px-4 py-2 text-dashBlack hover:bg-yellow-500 hover:text-white cursor-pointer"
                         >
                           {token.name} ({token.symbol})
@@ -445,7 +448,7 @@ export default function ComparePage() {
                 <GrowthStatCard 
                   value={`+${formatNumber(comparisonData.token1.marketcapgrowthperday)} / day`}
                   label={`${comparisonData.token1.name} has added +${formatNumber(comparisonData.token1.marketcapgrowthperday)} in marketcap per day since creation.`}
-                  className={`w-full mt-4 ${token1ScaleClass} ${token1AnimationClasses} transition-transform duration-300`}
+                  className={`w-full min-h-[240px] mt-4 ${token1ScaleClass} ${token1AnimationClasses} transition-transform duration-300`}
                   isWinner={token1IsWinner}
                 />
               </div>
@@ -479,7 +482,7 @@ export default function ComparePage() {
                 <GrowthStatCard 
                   value={`+${formatNumber(comparisonData.token2.marketcapgrowthperday)} / day`}
                   label={`${comparisonData.token2.name} has added +${formatNumber(comparisonData.token2.marketcapgrowthperday)} in marketcap per day since creation.`}
-                  className={`w-full mt-4 ${token2ScaleClass} ${token2AnimationClasses} transition-transform duration-300`}
+                  className={`w-full min-h-[240px] mt-4 ${token2ScaleClass} ${token2AnimationClasses} transition-transform duration-300`}
                   isWinner={token2IsWinner}
                 />
               </div>
@@ -596,7 +599,7 @@ export default function ComparePage() {
         )}
       </main>
 
-      <footer className="container mx-auto py-8 px-4 mt-12 border-t border-dashGreen-light">
+      <footer className="container mx-auto py-8 px-4 mt-40 border-t border-dashGreen-light">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <DashcoinLogo size={32} />
           <p className="text-sm opacity-80">© 2025 Dashcoin. All rights reserved.</p>
