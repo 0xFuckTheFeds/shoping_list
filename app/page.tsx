@@ -253,10 +253,10 @@ export default async function Home() {
               />
             </div>
             <div className="flex flex-col">
-              <h1 className="dashcoin-title text-5xl md:text-8xl text-dashYellow">
+              <h1 className="dashcoin-title-hq text-5xl md:text-8xl text-dashYellow">
                 DASHCOIN HQ
               </h1>
-              <p>Your Research hub for tokens launched on the Believe app</p>
+              <p className="text-xl">Your Research hub for tokens launched on the Believe app</p>
             </div>
             
             <div className="w-24 h-24 md:w-32 md:h-32 relative">
@@ -327,10 +327,6 @@ export default async function Home() {
               </a>
             </div>
           </div>
-          
-          <p className="text-xl max-w-2xl mx-auto">
-            Your Data Buddy for the Believe Coin Trenches
-          </p>
         </div>
 
         {/* Token Table */}

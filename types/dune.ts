@@ -49,6 +49,7 @@ export interface TokenData {
   volume24h?: number
   name?: string
   num_holders?: number
+  changeM5?: number
 }
 
 export interface PaginatedTokenResponse {

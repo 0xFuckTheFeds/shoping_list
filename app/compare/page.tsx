@@ -81,7 +81,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       <div className="p-2 bg-dashGreen-darker border border-dashGreen-light rounded-md shadow-lg">
         <p className="label text-dashYellow">{`${label}`}</p>
         {payload.map((entry: any, index: number) => (
-          <p key={`item-${index}`} style={{ color: entry.color }} className="text-sm">
+          <p key={`item-${index}`} className="text-sm text-white">
             {`${entry.name} : ${entry.value}`}
           </p>
         ))}
@@ -180,10 +180,25 @@ export default function ComparePage() {
     setIsLoading(true);
     setError(null);
     try {
-      const token1 = allTokens.find(t => t.name.toLowerCase() === token1Name.toLowerCase() || t.symbol.toLowerCase() === token1Name.toLowerCase());
-      const token2 = allTokens.find(t => t.name.toLowerCase() === token2Name.toLowerCase() || t.symbol.toLowerCase() === token2Name.toLowerCase());
+      let token1 = allTokens.find(t => t.token.toLowerCase() === token1Name.toLowerCase());
+      let token2 = allTokens.find(t => t.token.toLowerCase() === token2Name.toLowerCase());
+      
+      if (!token1) {
+        token1 = allTokens.find(t => 
+          t.name.toLowerCase() === token1Name.toLowerCase() || 
+          t.symbol.toLowerCase() === token1Name.toLowerCase()
+        );
+      }
+      
+      if (!token2) {
+        token2 = allTokens.find(t => 
+          t.name.toLowerCase() === token2Name.toLowerCase() || 
+          t.symbol.toLowerCase() === token2Name.toLowerCase()
+        );
+      }
+      
       if (!token1 || !token2) {
-        setError('One or both tokens not found. Please check name or symbol and try again.');
+        setError('One or both tokens not found. Please check name, symbol, or address and try again.');
         setIsLoading(false);
         return;
       }
@@ -222,7 +237,8 @@ export default function ComparePage() {
     if (input.length > 0) {
       const filtered = allTokens.filter(token => 
         token.name.toLowerCase().includes(input.toLowerCase()) || 
-        token.symbol.toLowerCase().includes(input.toLowerCase())
+        token.symbol.toLowerCase().includes(input.toLowerCase()) ||
+        token.token.toLowerCase().includes(input.toLowerCase())
       );
       suggestionsSetter(filtered);
       showSuggestionsSetter(true);
@@ -323,7 +339,7 @@ export default function ComparePage() {
                     onChange={(e) => handleTokenSearch(e.target.value, setToken1Name, setToken1Suggestions, setShowToken1Suggestions)}
                     onFocus={() => token1Suggestions.length > 0 && setShowToken1Suggestions(true)}
                     className="w-full px-4 py-3 rounded-md bg-dashGreen-dark border border-dashGreen-light focus:border-dashYellow focus:outline-none"
-                    placeholder="Enter token name or symbol (e.g. Dashcoin or DASHC)" autoComplete="off" />
+                    placeholder="Enter token name, symbol, or address" autoComplete="off" />
                   {showToken1Suggestions && token1Suggestions.length > 0 && (
                     <div className="absolute z-10 w-full mt-1 bg-dashYellow border border-dashGreen-light rounded-md shadow-lg max-h-60 overflow-y-auto">
                       {token1Suggestions.map(token => (
@@ -333,6 +349,7 @@ export default function ComparePage() {
                           className="px-4 py-2 text-dashBlack hover:bg-yellow-500 hover:text-white cursor-pointer"
                         >
                           {token.name} ({token.symbol})
+                          <div className="text-xs opacity-70 truncate">{token.token}</div>
                         </div>
                       ))}
                     </div>
@@ -344,7 +361,7 @@ export default function ComparePage() {
                     onChange={(e) => handleTokenSearch(e.target.value, setToken2Name, setToken2Suggestions, setShowToken2Suggestions)}
                     onFocus={() => token2Suggestions.length > 0 && setShowToken2Suggestions(true)}
                     className="w-full px-4 py-3 rounded-md bg-dashGreen-dark border border-dashGreen-light focus:border-dashYellow focus:outline-none"
-                    placeholder="Enter token name or symbol (e.g. Solana or SOL)" autoComplete="off" />
+                    placeholder="Enter token name, symbol, or address" autoComplete="off" />
                   {showToken2Suggestions && token2Suggestions.length > 0 && (
                     <div className="absolute z-10 w-full mt-1 bg-dashYellow border border-dashGreen-light rounded-md shadow-lg max-h-60 overflow-y-auto">
                       {token2Suggestions.map(token => (
@@ -354,6 +371,7 @@ export default function ComparePage() {
                           className="px-4 py-2 text-dashBlack hover:bg-yellow-500 hover:text-white cursor-pointer"
                         >
                           {token.name} ({token.symbol})
+                          <div className="text-xs opacity-70 truncate">{token.token}</div>
                         </div>
                       ))}
                     </div>
@@ -364,7 +382,7 @@ export default function ComparePage() {
                 </Button>
               </div>
               {error && (<p className="mt-4 text-sm text-red-500 text-center">{error}</p>)}
-              <p className="mt-2 text-sm opacity-70 flex items-center gap-2 justify-center"><InfoIcon className="h-4 w-4" />Enter the token names or symbols to compare metrics</p>
+              <p className="mt-2 text-sm opacity-70 flex items-center gap-2 justify-center"><InfoIcon className="h-4 w-4" />Enter the token names, symbols, or addresses to compare metrics</p>
             </form>
           </DashcoinCardContent>
         </DashcoinCard>
@@ -407,7 +425,7 @@ export default function ComparePage() {
                             formatter={(value: any, name: any, entry: any) => {
                                 if (entry.dataKey === comparisonData.token1?.symbol || entry.dataKey === comparisonData.token2?.symbol) {
                                    const numValue = Number(value);
-                                   if (!isNaN(numValue)) return [`$${numValue.toLocaleString()}`, entry.name];
+                                   if (!isNaN(numValue)) return [`${numValue.toLocaleString()}`, entry.name];
                                 }
                                 return [value, entry.name]; // Fallback for safety
                             }}
@@ -425,8 +443,8 @@ export default function ComparePage() {
                   </DashcoinCardContent>
                 </DashcoinCard>
                 <GrowthStatCard 
-                  value={`+$${formatNumber(comparisonData.token1.marketcapgrowthperday)} / day`}
-                  label={`${comparisonData.token1.name} has added +$${formatNumber(comparisonData.token1.marketcapgrowthperday)} in marketcap per day since creation.`}
+                  value={`+${formatNumber(comparisonData.token1.marketcapgrowthperday)} / day`}
+                  label={`${comparisonData.token1.name} has added +${formatNumber(comparisonData.token1.marketcapgrowthperday)} in marketcap per day since creation.`}
                   className={`w-full mt-4 ${token1ScaleClass} ${token1AnimationClasses} transition-transform duration-300`}
                   isWinner={token1IsWinner}
                 />
@@ -453,14 +471,14 @@ export default function ComparePage() {
                       </ResponsiveContainer>
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-4">
-                      <div className="p-3 rounded-md bg-dashGreen-dark"><p className="text-sm opacity-70">{`${comparisonData.token1.name} Holders`}</p><p className="text-xl text-dashYellow">{comparisonData.token1.holders.toLocaleString()}</p></div>
-                      <div className="p-3 rounded-md bg-dashGreen-dark"><p className="text-sm opacity-70">{`${comparisonData.token2.name} Holders`}</p><p className="text-xl text-dashYellow">{comparisonData.token2.holders.toLocaleString()}</p></div>
+                      <div className="p-3 rounded-md bg-dashGreen-dark"><p className="text-sm opacity-70">{`${comparisonData.token1.name} Holders`}</p><p className="text-xl text-blue-500">{comparisonData.token1.holders.toLocaleString()}</p></div>
+                      <div className="p-3 rounded-md bg-dashGreen-dark"><p className="text-sm opacity-70">{`${comparisonData.token2.name} Holders`}</p><p className="text-xl text-blue-500">{comparisonData.token2.holders.toLocaleString()}</p></div>
                     </div>
                   </DashcoinCardContent>
                 </DashcoinCard>
                 <GrowthStatCard 
-                  value={`+$${formatNumber(comparisonData.token2.marketcapgrowthperday)} / day`}
-                  label={`${comparisonData.token2.name} has added +$${formatNumber(comparisonData.token2.marketcapgrowthperday)} in marketcap per day since creation.`}
+                  value={`+${formatNumber(comparisonData.token2.marketcapgrowthperday)} / day`}
+                  label={`${comparisonData.token2.name} has added +${formatNumber(comparisonData.token2.marketcapgrowthperday)} in marketcap per day since creation.`}
                   className={`w-full mt-4 ${token2ScaleClass} ${token2AnimationClasses} transition-transform duration-300`}
                   isWinner={token2IsWinner}
                 />
@@ -544,6 +562,22 @@ export default function ComparePage() {
                         {(() => {
                           const v1 = comparisonData.token1.marketcapgrowthperday;
                           const v2 = comparisonData.token2.marketcapgrowthperday;
+                          const multipleStr = calculateMultiple(v1, v2);
+                          const colorClass = getDifferenceColorClass(v1, v2, multipleStr);
+                          return (
+                            <td className={`text-right py-3 px-4 ${colorClass}`}>
+                              {multipleStr}
+                            </td>
+                          );
+                        })()}
+                      </tr>
+                      <tr className="border-t border-b border-dashGreen-light">
+                        <td className="py-3 px-4">Market Cap per Holder</td>
+                        <td className="text-right py-3 px-4">${(comparisonData.token1.marketCap/comparisonData.token1.holders).toLocaleString()}</td>
+                        <td className="text-right py-3 px-4">${(comparisonData.token2.marketCap/comparisonData.token2.holders).toLocaleString()}</td>
+                        {(() => {
+                          const v1 = comparisonData.token1.marketCap/comparisonData.token1.holders;
+                          const v2 = comparisonData.token2.marketCap/comparisonData.token2.holders;
                           const multipleStr = calculateMultiple(v1, v2);
                           const colorClass = getDifferenceColorClass(v1, v2, multipleStr);
                           return (
