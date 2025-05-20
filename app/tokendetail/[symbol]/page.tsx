@@ -25,6 +25,10 @@ interface TokenResearchData {
   "Discussed Plans for Token Integration": number | string
   "Project Has Some Virality / Popularity": number | string
   "Live Product Exists": number | string
+  "Relevant Links": string
+  "Comments": string
+  "Wallet Link": string
+  "Wallet Comments": string
   Twitter?: string
   [key: string]: any
 }
@@ -33,7 +37,7 @@ async function fetchTokenResearch(tokenSymbol: string): Promise<TokenResearchDat
   const API_KEY = 'AIzaSyC8QxJez_UTHUJS7vFj1J3Sje0CWS9tXyk';
   const SHEET_ID = '1Nra5QH-JFAsDaTYSyu-KocjbkZ0MATzJ4R-rUt-gLe0';
   const SHEET_NAME = 'Dashcoin Scoring';
-  const RANGE = `${SHEET_NAME}!A1:K26`;
+  const RANGE = `${SHEET_NAME}!A1:M30`;
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
 
   try {
@@ -109,8 +113,6 @@ export default function TokenResearchPage({ params }: { params: { symbol: string
         timeStyle: "medium",
       })
     : "N/A"
-
-  
 
   useEffect(() => {
     const getResearchData = async () => {
@@ -225,10 +227,30 @@ export default function TokenResearchPage({ params }: { params: { symbol: string
         </Link>
 
         <div className="flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
-          <div>
-            <h1 className="dashcoin-title text-4xl text-dashYellow">{tokenSymbol}</h1>
-            <p className="opacity-80">{tokenName}</p>
-            <p className="text-xs opacity-60 mt-1">Created: {createdTime}</p>
+          
+          <div className="flex justify-between text-center">
+            <div className="flex flex-col">
+              <h1 className="dashcoin-title text-3xl text-dashYellow">{tokenSymbol}</h1>
+              <p className="opacity-80">{tokenName}</p>
+              <p className="text-xs opacity-60 mt-1">Created: {createdTime}</p>
+            </div>
+          </div>  
+          <div className="flex flex-col items-center justify-center text-center mt-2">
+            <p className="dashcoin-title text-4xl text-dashYellow">
+              {researchData?.["Wallet Comments"] || "Creator Wallet Activity"}
+            </p>
+            {researchData?.["Wallet Link"] ? (
+              <a 
+                href={researchData["Wallet Link"]} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="hover:text-dashYellow-light flex items-center text-sm mt-1"
+              >
+                Link to creator wallet <ExternalLink className="h-3 w-3 ml-1" />
+              </a>
+            ) : (
+              <span className="text-sm mt-1 opacity-60">No wallet link available</span>
+            )}
           </div>
           <div className="flex gap-2">
             <a
