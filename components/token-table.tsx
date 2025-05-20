@@ -11,49 +11,12 @@ import { CopyAddress } from "@/components/copy-address"
 import { DuneQueryLink } from "@/components/dune-query-link"
 import { batchFetchTokensData } from "@/app/actions/dexscreener-actions"
 import { useCallback } from "react"
+import { fetchTokenResearch } from "@/app/actions/googlesheet-action"
 
 interface ResearchScoreData {
   symbol: string
   score: number | null
   [key: string]: any 
-}
-
-async function fetchTokenResearch(): Promise<ResearchScoreData[]> {
-  const API_KEY = 'AIzaSyC8QxJez_UTHUJS7vFj1J3Sje0CWS9tXyk';
-  const SHEET_ID = '1Nra5QH-JFAsDaTYSyu-KocjbkZ0MATzJ4R-rUt-gLe0';
-  const SHEET_NAME = 'Dashcoin Scoring';
-  const RANGE = `${SHEET_NAME}!A1:K29`;
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
-
-  try {
-    const response = await fetch(url);
-    const data = await response.json();
-    
-    if (!data.values || data.values.length < 2) {
-      console.warn('No data found in Google Sheet');
-      return [];
-    }
-
-    const [header, ...rows] = data.values;
-    
-    const structured = rows.map((row: any) => {
-      const entry: Record<string, any> = {};
-      header.forEach((key: string, i: number) => {
-        entry[key.trim()] = row[i] || '';
-      });
-      return entry;
-    });
-
-    return structured.map((entry: any) => {
-      return {
-        symbol: (entry['Project'] || '').toString().toUpperCase(),
-        score: entry['Score'] ? parseFloat(entry['Score']) : null,
-      };
-    });
-  } catch (err) {
-    console.error('Google Sheets API error:', err);
-    return [];
-  }
 }
 
 export default function TokenTable({ data }: { data: PaginatedTokenResponse | TokenData[] }) {
@@ -82,6 +45,8 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
       try {
         const scores = await fetchTokenResearch();
         setResearchScores(scores);
+
+        console.log("hhhhhhhhhhhhhhhhhhhhhhhhhscore from google sheet", scores)
       } catch (error) {
         console.error("Error fetching research scores:", error);
       } finally {
@@ -182,12 +147,13 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
     return token && token[property] !== undefined && token[property] !== null ? token[property] : defaultValue
   }
   
+    
   const getResearchScore = (tokenSymbol: string): number | null => {
     if (!tokenSymbol) return null;
     
     const normalizedSymbol = tokenSymbol.toUpperCase();
     const scoreData = researchScores.find(item => item.symbol.toUpperCase() === normalizedSymbol);
-    return scoreData?.score || null;
+    return scoreData?.score !== undefined ? scoreData.score : null;
   }
 
   const tokensWithDexData = filteredTokens.map(token => {
@@ -448,6 +414,8 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
                   const tokenSymbol = getTokenProperty(token, "symbol", "???")
                   const researchScore = getResearchScore(tokenSymbol)
 
+                  console.log('HHHHHHHHHHresearch score', researchScore);
+
                   return (
                     <tr
                       key={index}
@@ -491,7 +459,7 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
                             <Loader2 className="h-4 w-4 animate-spin text-dashYellow mr-2" />
                             <span>Loading...</span>
                           </div>
-                        ) : researchScore !== null ? (
+                        ) : researchScore !== null && researchScore !== undefined ? (
                           <div className="flex items-center">
                             <span className="font-medium mr-2">{researchScore.toFixed(1)}</span>
                             <Link href={`/tokendetail/${tokenSymbol}`} className="hover:text-dashYellow">

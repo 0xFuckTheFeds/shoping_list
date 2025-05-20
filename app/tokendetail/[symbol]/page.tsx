@@ -118,7 +118,7 @@ export default function TokenResearchPage({ params }: { params: { symbol: string
       try {
         const data = await fetchTokenResearch(symbol);
         setResearchData(data);
-        setHasScore(!!data && data.Score !== undefined && data.Score !== '');
+        setHasScore(true);
       } catch (error) {
         console.error(`Error fetching research data for ${symbol}:`, error);
       } finally {

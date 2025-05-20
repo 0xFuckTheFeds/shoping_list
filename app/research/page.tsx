@@ -306,7 +306,6 @@ export default function ResearchPage() {
 
   const handleDeleteArticle = async (id: string) => {
     try {
-      // Find the article with MongoDB _id
       const articleToDelete = articles.find(article => article.id === id || article._id === id);
       
       if (!articleToDelete) {
@@ -316,7 +315,6 @@ export default function ResearchPage() {
       
       const deleteId = articleToDelete._id || articleToDelete.id;
       
-      // Delete from MongoDB
       const response = await fetch(`/api/articles/${deleteId}`, {
         method: 'DELETE',
       });
@@ -325,7 +323,6 @@ export default function ResearchPage() {
         throw new Error('Failed to delete article from database');
       }
       
-      // Update state
       setArticles(articles.filter(article => article.id !== id && article._id !== id));
       
       if (selectedPostId === id || selectedPostId === deleteId) {
