@@ -425,10 +425,10 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
                   <div className="flex items-center gap-1">24h Volume {renderSortIndicator("volume24h")}</div>
                 </th>
                 <th className="text-left py-3 px-4 text-dashYellow cursor-pointer" onClick={() => handleSort("change24h")}>
-                  <div className="flex items-center gap-1">24h Change {renderSortIndicator("change24h")}</div>
+                  <div className="flex items-center gap-1">24h %Gain {renderSortIndicator("change24h")}</div>
                 </th>
                 <th className="text-left py-3 px-4 text-dashYellow cursor-pointer" onClick={() => handleSort("changeM5")}>
-                  <div className="flex items-center gap-1">5m Change {renderSortIndicator("changeM5")}</div>
+                  <div className="flex items-center gap-1">5m %Gain {renderSortIndicator("changeM5")}</div>
                 </th>
               </tr>
             </thead>
