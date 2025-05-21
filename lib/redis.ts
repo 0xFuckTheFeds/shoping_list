@@ -36,9 +36,7 @@ export async function getFromCache<T>(key: string): Promise<T | null> {
   }
 }
 
-/**
- * Set data in Redis cache with fallback
- */
+
 export async function setInCache(key: string, data: any, expirationMs?: number): Promise<void> {
   if (!isKvAvailable) {
     console.warn("KV is not available, skipping cache set")
