@@ -18,7 +18,7 @@ export const CACHE_KEYS = {
 }
 
 export const CACHE_DURATION = 1 * 60 * 60 * 1000  
-export const CACHE_DURATION_LONG = 12 * 60 * 60 * 1000 
+export const CACHE_DURATION_LONG = 1 * 60 * 60 * 1000 
 
 const isKvAvailable = typeof kv !== "undefined" && kv !== null
 
