@@ -43,6 +43,7 @@ export async function setInCache(key: string, data: any, expirationMs?: number):
     return
   }
 
+  
   try {
     if (expirationMs) {
       await kv.set(key, data, { ex: Math.floor(expirationMs / 1000) })
