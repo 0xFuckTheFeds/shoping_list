@@ -119,10 +119,7 @@ export default function ResearchPage() {
   };
 
   useEffect(() => {
-    const bcrypt = require('bcryptjs');
-  const password = 'pure2025dashcoin';
-  const hash = bcrypt.hashSync(password, 12);
-  console.log('Password hash:', hash);
+
     const savedAdminMode = localStorage.getItem('dashcoinAdminMode');
     if (savedAdminMode === 'true') {
       setIsAdminMode(true);
