@@ -669,7 +669,7 @@ export default function ResearchPage() {
                   <Search className="absolute right-3 top-2.5 h-5 w-5 text-dashYellow-light" />
                 </div>
               </DashcoinCardHeader>
-              <DashcoinCardContent className="h-full overflow-y-auto no-scrollbar">
+              <DashcoinCardContent className="h-full overflow-y-auto scrollbar-thin scrollbar-track-dashGreen-dark scrollbar-thumb-dashYellow scrollbar-thumb-rounded-md hover:scrollbar-thumb-dashYellow-light">
                 {articles.length === 0 ? (
                   <div className="flex flex-col items-center justify-center text-center h-64 text-gray-400">
                     <FileText className="h-12 w-12 mb-4 opacity-50" />
