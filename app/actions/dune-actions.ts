@@ -235,23 +235,23 @@ export async function fetchMarketCapOverTime(): Promise<MarketCapTimeData[]> {
 
 export async function fetchTokenMarketCaps(): Promise<TokenMarketCapData[]> {
   try {
-    const { lastRefreshTime } = await getQueryTimeUntilNextRefresh(
-      CACHE_KEYS.TOKEN_MARKET_CAPS_LAST_REFRESH,
-      CACHE_DURATION
-    );
+    // const { lastRefreshTime } = await getQueryTimeUntilNextRefresh(
+    //   CACHE_KEYS.TOKEN_MARKET_CAPS_LAST_REFRESH,
+    //   CACHE_DURATION
+    // );
     
-    if ((Date.now() - lastRefreshTime.getTime()) < CACHE_DURATION) {
-      const cachedData = await getFromCache<TokenMarketCapData[]>(
-        CACHE_KEYS.TOKEN_MARKET_CAPS
-      );
-      if (cachedData && cachedData.length > 0) {
-        console.log("Token market caps: Less than 1 hour since last refresh, using cache");
-        return cachedData;
-      }
-    }
+    // if ((Date.now() - lastRefreshTime.getTime()) < CACHE_DURATION) {
+    //   const cachedData = await getFromCache<TokenMarketCapData[]>(
+    //     CACHE_KEYS.TOKEN_MARKET_CAPS
+    //   );
+    //   if (cachedData && cachedData.length > 0) {
+    //     console.log("Token market caps: Less than 1 hour since last refresh, using cache");
+    //     return cachedData;
+    //   }
+    // }
 
-    console.log("Token market caps: More than 1 hour since last refresh, fetching from Dune");
-    const result = await fetchDuneQueryResults(5140151);
+    // console.log("Token market caps: More than 1 hour since last refresh, fetching from Dune");
+      const result = await fetchDuneQueryResults(5140151);
 
     if (result && result.rows && result.rows.length > 0) {
       const currentDate = new Date().toISOString().split("T")[0];
