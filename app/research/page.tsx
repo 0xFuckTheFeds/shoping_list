@@ -63,35 +63,55 @@ export default function ResearchPage() {
     articles.find((article) => article.id === selectedPostId) : 
     articles.length > 0 ? articles[0] : null;
 
-  const handleAdminLogin = async () => {
-    setAuthError("");
-    
-    try {
-      const response = await fetch('/api/auth/admin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: adminEmail,
-          password: adminPassword,
-        }),
-      });
+    const handleAdminLogin = async () => {
+      setAuthError("");
       
-      const data = await response.json();
-      
-      if (response.ok && data.authenticated) {
-        setIsAdminMode(true);
-        setShowAdminModal(false);
-        localStorage.setItem('dashcoinAdminMode', 'true');
-      } else {
-        setAuthError(data.error || 'Invalid credentials');
+      try {
+        const response = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: adminEmail,
+            password: adminPassword,
+          }),
+        });
+        
+        const data = await response.json();
+        
+        // Handle different response status codes
+        if (response.status === 429) {
+          setAuthError('Too many login attempts. Please try again later.');
+          return;
+        }
+        
+        if (response.status === 400) {
+          setAuthError('Email and password are required');
+          return;
+        }
+        
+        // Check for successful login (changed from data.authenticated to data.success)
+        if (response.ok && data.success) {
+          setIsAdminMode(true);
+          setShowAdminModal(false);
+          
+          // Remove localStorage usage for security - rely on httpOnly cookies instead
+          // The JWT token is now stored in a secure httpOnly cookie
+          // localStorage.setItem('dashcoinAdminMode', 'true'); // Remove this line
+          
+          // Optional: Clear form fields
+          setAdminEmail('');
+          setAdminPassword('');
+          
+        } else {
+          setAuthError(data.error || 'Invalid credentials');
+        }
+      } catch (error) {
+        console.error('Error authenticating:', error);
+        setAuthError('Authentication failed. Please try again.');
       }
-    } catch (error) {
-      console.error('Error authenticating:', error);
-      setAuthError('Authentication failed. Please try again.');
-    }
-  };
+    };
 
   const handleAdminLogout = () => {
     setIsAdminMode(false);
@@ -99,6 +119,10 @@ export default function ResearchPage() {
   };
 
   useEffect(() => {
+    const bcrypt = require('bcryptjs');
+  const password = 'pure2025dashcoin';
+  const hash = bcrypt.hashSync(password, 12);
+  console.log('Password hash:', hash);
     const savedAdminMode = localStorage.getItem('dashcoinAdminMode');
     if (savedAdminMode === 'true') {
       setIsAdminMode(true);
@@ -106,6 +130,7 @@ export default function ResearchPage() {
   }, []);
   
   useEffect(() => {
+    
     const fetchArticles = async () => {
       try {
         setIsLoading(true);
