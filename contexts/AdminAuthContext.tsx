@@ -13,6 +13,7 @@ const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefin
 export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false);
 
+  
   // Check if user is already logged in as admin
   useEffect(() => {
     const checkAdminStatus = async () => {
