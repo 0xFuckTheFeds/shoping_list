@@ -143,25 +143,11 @@ export default async function Home() {
 
 
   // disabled at the moment for saving on API calls
-  // const marketCapTimeDataPromise = fetchMarketCapOverTime().catch((error) => {
-  //   console.error("Error fetching market cap over time:", error);
-  //   return [];
-  // });
-    const marketCapTimeDataPromise = Promise.resolve([]); // Placeholder for now
+  const marketCapTimeDataPromise = fetchMarketCapOverTime().catch((error) => {
+    console.error("Error fetching market cap over time:", error);
+    return [];
+  });
 
-    // const marketStatsPromise = fetchMarketStats().then(data => {
-    //   return data;
-    // }).catch((error) => {
-    //   console.error("Error fetching market stats:", error);
-    //   return {
-    //     totalMarketCap: 0,
-    //     volume24h: 0,
-    //     transactions24h: 0,
-    //     feeEarnings24h: 0,
-    //     lifetimeVolume: 0,
-    //     coinLaunches: 0,
-    //   };
-    // });
   const tokenMarketCapsPromise = fetchTokenMarketCaps().then(data => {
     return data;
   }).catch((error) => {
