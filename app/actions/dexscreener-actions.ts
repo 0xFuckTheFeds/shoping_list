@@ -1,6 +1,8 @@
 "use server"
 
 import { cache } from "react"
+import { fetchAllTokensFromDune } from "@/app/actions/dune-actions";
+import type { TokenData } from "@/types/dune";
 
 // Define types for Dexscreener API responses
 export interface DexscreenerPair {
@@ -659,5 +661,36 @@ export async function enrichTokenDataWithDexscreener(tokenData: any) {
     console.error("Error enriching token data with Dexscreener:", error)
     // Return original data if enrichment fails
     return tokenData || {}
+  }
+}
+
+/**
+ * Fetch Dexscreener data for tokens from Dune query results
+ */
+export async function fetchDexscreenerDataForDuneTokens(): Promise<Map<string, DexscreenerTokenResponse | null>> {
+  try {
+    // First get all tokens from Dune (already sorted by market cap)
+    const duneTokens = await fetchAllTokensFromDune();
+    
+    // Extract token addresses while maintaining order
+    const tokenAddresses = duneTokens.map((token: TokenData) => token.token).filter(Boolean);
+    
+    // Use batch fetch to get Dexscreener data for all tokens
+    const dexscreenerData = await batchFetchTokenData(tokenAddresses);
+    
+    // Create a new Map that maintains the order of the original duneTokens
+    const orderedData = new Map<string, DexscreenerTokenResponse | null>();
+    
+    // Add data in the same order as duneTokens
+    for (const token of duneTokens) {
+      if (token.token) {
+        orderedData.set(token.token, dexscreenerData.get(token.token) || null);
+      }
+    }
+    
+    return orderedData;
+  } catch (error) {
+    console.error("Error fetching Dexscreener data for Dune tokens:", error);
+    return new Map();
   }
 }
