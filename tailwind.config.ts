@@ -21,27 +21,25 @@ const config = {
     },
     extend: {
       colors: {
-        // Dashcoin brand colors - updated with army green theme
         dashGreen: {
-          DEFAULT: "#4b5320", // Army green (main background)
-          dark: "#2d3214", // Darker army green for dark mode
-          light: "#6b7a30", // Lighter army green
-          accent: "#8a9a45", // Accent green
-          card: "#2a2f0e", // Much darker green for cards
-          cardDark: "#1a1d08", // Very dark green for cards in dark mode
+          DEFAULT: "#4b5320", 
+          dark: "#2d3214", 
+          light: "#6b7a30", 
+          accent: "#8a9a45",    
+          card: "#2a2f0e",     
+          cardDark: "#1a1d08", 
         },
         dashYellow: {
-          DEFAULT: "#ffd700", // Coin color
-          light: "#fff0a0", // Text color
+          DEFAULT: "#ffd700",     
+          light: "#fff0a0",     
           dark: "#e6b800",
         },
         dashRed: {
-          DEFAULT: "#ff6666", // Accent color (frog cheeks)
+          DEFAULT: "#ff6666",  
           dark: "#cc3333",
         },
-        dashBlack: "#222222", // Outline color
+        dashBlack: "#222222",     
 
-        // UI colors
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -106,7 +104,7 @@ const config = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")], // Removed typography plugin
+  plugins: [require("tailwindcss-animate")],
 } satisfies Config
 
 export default config

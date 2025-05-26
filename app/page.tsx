@@ -1,4 +1,3 @@
-// app/page.tsx
 import Image from "next/image";
 import { DashcoinLogo } from "@/components/dashcoin-logo";
 import {
@@ -28,7 +27,6 @@ import { DuneQueryLink } from "@/components/dune-query-link";
 import { Navbar } from "@/components/navbar";
 import { Twitter } from "lucide-react";
 
-// Define wrapper components to handle promises with error handling
 const MarketCapChartWrapper = async ({
   marketCapTimeDataPromise,
 }: {
@@ -96,23 +94,14 @@ const TokenTableWrapper = async ({
 };
 
 export default async function Home() {
-  // Check if DUNE_API_KEY is set
   const hasDuneApiKey = !!process.env.DUNE_API_KEY;
-
-  // If no API key, show setup screen
   if (!hasDuneApiKey) {
     return <EnvSetup />;
   }
-
-  // Dashcoin contract address
   const dashcoinCA = "7gkgsqE2Uip7LUyrqEi8fyLPNSbn7GYu9yFgtxZwYUVa";
-  // Dashcoin trade link
   const dashcoinTradeLink =
     "https://axiom.trade/meme/Fjq9SmWmtnETAVNbir1eXhrVANi1GDoHEA4nb4tNn7w6/@dashc";
-  // Dashcoin X (Twitter) link
   const dashcoinXLink = "https://x.com/dune_dashcoin";
-
-  // Fetch data from Dune with error handling
   const marketStatsPromise = fetchMarketStats().then(data => {
     return data;
   }).catch((error) => {
@@ -127,27 +116,18 @@ export default async function Home() {
     };
   });
 
+  const tokenDataPromise = fetchPaginatedTokens(1, 10, "marketCap", "desc").then(data => {
+    return data;
+  }).catch((error) => {
+    console.error("error.fetching tokens makret cap", error);
+    return {}
+    });
 
-  const tokenDataPromise = fetchPaginatedTokens(1, 10, "marketCap", "desc").catch(
-    (error) => {
-      console.error("Error fetching paginated tokens:", error);
-      return {
-        tokens: [],
-        page: 1,
-        pageSize: 10,
-        totalTokens: 0,
-        totalPages: 1,
-      };
-    }
-  );
-
-
-  // disabled at the moment for saving on API calls
   const marketCapTimeDataPromise = fetchMarketCapOverTime().catch((error) => {
     console.error("Error fetching market cap over time:", error);
     return [];
   });
-
+    
   const tokenMarketCapsPromise = fetchTokenMarketCaps().then(data => {
     return data;
   }).catch((error) => {
@@ -160,7 +140,6 @@ export default async function Home() {
     return { latest_data_at: new Date().toISOString(), total_marketcap_usd: 0 };
   });
 
-  // Fetch DASHC data from Dexscreener with error handling
   const dexscreenerDataPromise = fetchDexscreenerTokenData(dashcoinCA).catch(
     (error) => {
       console.error("Error fetching Dexscreener data:", error);
@@ -168,7 +147,6 @@ export default async function Home() {
     }
   );
 
-  // Await the promises we need immediately with error handling
   let marketStats, totalMarketCap, dexscreenerData;
   try {
     [marketStats, totalMarketCap, dexscreenerData] = await Promise.all([
@@ -193,8 +171,6 @@ export default async function Home() {
     dexscreenerData = null;
   }
 
-
-  // Get information about the Dune data cache with error handling
   let timeRemaining = 0;
   let lastRefreshTime = new Date(Date.now() -  34 * 60 * 1000); // Default to 1 hours ago
 
@@ -210,20 +186,17 @@ export default async function Home() {
     lastRefreshTime.getTime() + 1 * 60 * 60 * 1000
   );
 
-  // Format the refresh times for display
   const formattedLastRefresh = lastRefreshTime.toLocaleString(undefined, {
     dateStyle: "short",
     timeStyle: "medium",
   });
   const formattedNextRefresh = nextRefreshTime.toLocaleString();
 
-  // Calculate hours and minutes until next refresh
   const hoursUntilRefresh = Math.floor(timeRemaining / (2 * 60 * 60 * 1000));
   const minutesUntilRefresh = Math.floor(
     (timeRemaining % (60 * 60 * 1000)) / (60 * 1000)
   );
 
-  // Format numbers for display with null checks
   const formattedMarketCap = formatCurrency(
     marketStats?.totalMarketCap || 0
   );
@@ -231,19 +204,16 @@ export default async function Home() {
   const formattedFeeEarnings = formatCurrency(marketStats?.feeEarnings24h || 0);
   const formattedCoinLaunches = (marketStats?.coinLaunches || 0).toLocaleString();
 
-  // Get DASHC token data from Dexscreener with null checks
   let dashcPrice = 0;
   let dashcMarketCap = 0;
   let dashcVolume = 0;
   let dashcChange24h = 0;
   let dashcLiquidity = 0;
-  const dashcHolders = 0; // Dexscreener doesn't provide holders count
+  const dashcHolders = 0; 
   let dashcPairAddress = "";
   let lastUpdated = new Date().toLocaleString();
 
-  // Extract data from Dexscreener response if available
   if (dexscreenerData && dexscreenerData.pairs && dexscreenerData.pairs.length > 0) {
-    // Use the first pair (usually the most liquid one)
     const pair = dexscreenerData.pairs[0];
 
     dashcPrice = Number(pair.priceUsd || 0);
@@ -253,7 +223,6 @@ export default async function Home() {
     dashcLiquidity = pair.liquidity?.usd || 0;
     dashcPairAddress = pair.pairAddress || "";
 
-    // If we have a timestamp for the data, use it
     //@ts-ignore
     if (pair.updatedAt) {
       //@ts-ignore
@@ -280,12 +249,16 @@ export default async function Home() {
                 width={128}
                 height={128}
                 className="object-contain rounded-full overflow-hidden"
-                style={{ clipPath: "circle(50%)" }} // This attempts to clip to a circle
+                style={{ clipPath: "circle(50%)" }} 
               />
             </div>
-            <h1 className="dashcoin-title text-5xl md:text-7xl text-dashYellow">
-              DASHCOIN TRACKER
-            </h1>
+            <div className="flex flex-col">
+              <h1 className="dashcoin-title-hq text-5xl md:text-8xl text-dashYellow">
+                DASHCOIN HQ
+              </h1>
+              <p className="text-xl">Your Research hub for tokens launched on the Believe app</p>
+            </div>
+            
             <div className="w-24 h-24 md:w-32 md:h-32 relative">
               <Image
                 src="/images/frog-soldier.png"
@@ -293,7 +266,7 @@ export default async function Home() {
                 width={128}
                 height={128}
                 className="object-contain scale-x-[-1] rounded-full overflow-hidden"
-                style={{ clipPath: "circle(50%)" }} // This attempts to clip to a circle
+                style={{ clipPath: "circle(50%)" }}
               />
             </div>
           </div>
@@ -354,15 +327,25 @@ export default async function Home() {
               </a>
             </div>
           </div>
-          {/* Last updated info */}
-          <div className="mb-4 text-center">
-            <p className="text-xs opacity-60">DEX data last updated: {lastUpdated}</p>
-            <p className="text-xs opacity-60">Dune data last updated: {formattedLastRefresh}</p>
-            <p className="text-xs opacity-60">Next Dune refresh: {formattedNextRefresh}</p>
-          </div>
-          <p className="text-xl max-w-2xl mx-auto">
-            Your Data Buddy for the Believe Coin Trenches
-          </p>
+        </div>
+
+        {/* Token Table */}
+        <div className="mt-8">
+          <h2 className="dashcoin-text text-3xl text-dashYellow mb-4">
+            Top Tokens by Market Cap
+          </h2>
+          <Suspense
+            fallback={
+              <DashcoinCard className="p-8 flex items-center justify-center">
+                <p className="text-center">
+                  Loading token data... This may take a moment as we fetch data for the
+                  top tokens.
+                </p>
+              </DashcoinCard>
+            }
+          >
+            <TokenTableWrapper tokenDataPromise={tokenDataPromise} />
+          </Suspense>
         </div>
 
         {/* Summary Stats */}
@@ -467,24 +450,7 @@ export default async function Home() {
           </Suspense>
         </div>
 
-        {/* Token Table */}
-        <div className="mt-8">
-          <h2 className="dashcoin-text text-3xl text-dashYellow mb-4">
-            Top Tokens by Market Cap
-          </h2>
-          <Suspense
-            fallback={
-              <DashcoinCard className="p-8 flex items-center justify-center">
-                <p className="text-center">
-                  Loading token data... This may take a moment as we fetch data for the
-                  top tokens.
-                </p>
-              </DashcoinCard>
-            }
-          >
-            <TokenTableWrapper tokenDataPromise={tokenDataPromise} />
-          </Suspense>
-        </div>
+        
       </main>
 
       <footer className="container mx-auto py-8 px-4 mt-12 border-t border-dashGreen-light">

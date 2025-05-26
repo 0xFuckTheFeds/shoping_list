@@ -4,7 +4,6 @@ import { cache } from "react"
 import { fetchAllTokensFromDune } from "@/app/actions/dune-actions";
 import type { TokenData } from "@/types/dune";
 
-// Define types for Dexscreener API responses
 export interface DexscreenerPair {
   chainId: string
   dexId: string
@@ -66,114 +65,12 @@ export interface DexscreenerTokenResponse {
   pair?: DexscreenerPair
 }
 
-// Check if we're in a preview environment
 const IS_PREVIEW = process.env.VERCEL_ENV === "preview" || process.env.ENABLE_DUNE_API === "false"
 
-// Mock data for preview environments
-const MOCK_DEXSCREENER_DATA: Record<string, DexscreenerTokenResponse> = {
-  "7gkgsqE2Uip7LUyrqEi8fyLPNSbn7GYu9yFgtxZwYUVa": {
-    pairs: [
-      {
-        chainId: "solana",
-        dexId: "raydium",
-        url: "https://dexscreener.com/solana/7gkgsqE2Uip7LUyrqEi8fyLPNSbn7GYu9yFgtxZwYUVa",
-        pairAddress: "7gkgsqE2Uip7LUyrqEi8fyLPNSbn7GYu9yFgtxZwYUVa",
-        baseToken: {
-          address: "7gkgsqE2Uip7LUyrqEi8fyLPNSbn7GYu9yFgtxZwYUVa",
-          name: "Dashcoin",
-          symbol: "DASHC",
-        },
-        quoteToken: {
-          address: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-          name: "USD Coin",
-          symbol: "USDC",
-        },
-        priceNative: "0.00000142",
-        priceUsd: "0.00000142",
-        txns: {
-          m5: { buys: 10, sells: 5 },
-          h1: { buys: 120, sells: 80 },
-          h6: { buys: 600, sells: 400 },
-          h24: { buys: 1200, sells: 800 },
-        },
-        volume: {
-          h24: 3500000,
-          h6: 1200000,
-          h1: 350000,
-          m5: 50000,
-        },
-        priceChange: {
-          m5: 0.2,
-          h1: 0.8,
-          h6: 1.5,
-          h24: 2.5,
-        },
-        liquidity: {
-          usd: 2500000,
-          base: 1250000000000,
-          quote: 1250000,
-        },
-        fdv: 142000000,
-        pairCreatedAt: 1672531200000,
-      },
-    ],
-  },
-  Fjq9SmWmtnETAVNbir1eXhrVANi1GDoHEA4nb4tNn7w6: {
-    pairs: [
-      {
-        chainId: "solana",
-        dexId: "raydium",
-        url: "https://dexscreener.com/solana/Fjq9SmWmtnETAVNbir1eXhrVANi1GDoHEA4nb4tNn7w6",
-        pairAddress: "Fjq9SmWmtnETAVNbir1eXhrVANi1GDoHEA4nb4tNn7w6",
-        baseToken: {
-          address: "Fjq9SmWmtnETAVNbir1eXhrVANi1GDoHEA4nb4tNn7w6",
-          name: "Goon Coin",
-          symbol: "GOON",
-        },
-        quoteToken: {
-          address: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-          name: "USD Coin",
-          symbol: "USDC",
-        },
-        priceNative: "0.00000098",
-        priceUsd: "0.00000098",
-        txns: {
-          m5: { buys: 8, sells: 4 },
-          h1: { buys: 95, sells: 65 },
-          h6: { buys: 475, sells: 325 },
-          h24: { buys: 950, sells: 650 },
-        },
-        volume: {
-          h24: 2800000,
-          h6: 950000,
-          h1: 280000,
-          m5: 40000,
-        },
-        priceChange: {
-          m5: 0.1,
-          h1: 0.3,
-          h6: 0.8,
-          h24: 1.2,
-        },
-        liquidity: {
-          usd: 1800000,
-          base: 900000000000,
-          quote: 900000,
-        },
-        fdv: 98000000,
-        pairCreatedAt: 1668124800000,
-      },
-    ],
-  },
-}
-
-// In-memory cache for Dexscreener data
 const dexscreenerCache = new Map<string, { data: any; timestamp: number }>()
-const CACHE_TTL = 5 * 60 * 1000 // 5 minutes cache
-
-// Track API call times to implement rate limiting
+const CACHE_TTL = 5 * 60 * 1000 
 const apiCallTimes: number[] = []
-const MAX_CALLS_PER_MINUTE = 30 // Dexscreener limit is 60, but we'll be conservative
+const MAX_CALLS_PER_MINUTE = 30 
 
 function checkRateLimit(): boolean {
   const now = Date.now()
@@ -191,17 +88,13 @@ async function waitForRateLimit(): Promise<void> {
 
   const now = Date.now()
   const oldestCall = apiCallTimes[0]
-  const timeToWait = 60000 - (now - oldestCall) + 1000 // Add 1 second buffer
+  const timeToWait = 60000 - (now - oldestCall) + 1000 
 
   await new Promise((resolve) => setTimeout(resolve, timeToWait))
-  return waitForRateLimit() // Check again
+  return waitForRateLimit() 
 }
 
-/**
- * Fetch with retry logic and rate limit handling
- */
 async function fetchWithRetry(url: string, maxRetries = 3, initialDelay = 1000): Promise<Response> {
-  // Wait until we're under rate limit
   await waitForRateLimit()
 
   let retries = 0
@@ -209,16 +102,13 @@ async function fetchWithRetry(url: string, maxRetries = 3, initialDelay = 1000):
 
   while (retries < maxRetries) {
     try {
-      // Track this API call
       apiCallTimes.push(Date.now())
-
       const response = await fetch(url)
 
-      // If we hit rate limit, wait and retry
       if (response.status === 429) {
         await new Promise((resolve) => setTimeout(resolve, delay))
         retries++
-        delay *= 2 // Exponential backoff
+        delay *= 2 
         continue
       }
 
@@ -229,22 +119,20 @@ async function fetchWithRetry(url: string, maxRetries = 3, initialDelay = 1000):
 
       await new Promise((resolve) => setTimeout(resolve, delay))
       retries++
-      delay *= 2 // Exponential backoff
+      delay *= 2 
     }
   }
 
   throw new Error(`Failed to fetch after ${maxRetries} retries`)
 }
 
-// Add a function to get the time remaining until next Dexscreener refresh
 export async function getTimeUntilNextDexscreenerRefresh(cacheKey: string): Promise<{
   timeRemaining: number
   lastRefreshTime: Date | null
 }> {
-  // In preview, simulate a refresh that happened 2 minutes ago
   if (IS_PREVIEW) {
-    const mockLastRefreshTime = new Date(Date.now() - 2 * 60 * 1000) // 2 minutes ago
-    const timeRemaining = 3 * 60 * 1000 // 3 minutes remaining (out of 5)
+    const mockLastRefreshTime = new Date(Date.now() - 2 * 60 * 1000) 
+    const timeRemaining = 3 * 60 * 1000 
 
     return {
       timeRemaining,
@@ -271,70 +159,12 @@ export async function getTimeUntilNextDexscreenerRefresh(cacheKey: string): Prom
   }
 }
 
-/**
- * Fetch token data from Dexscreener API with caching
- */
 export const fetchDexscreenerTokenData = cache(
   async (tokenAddress: string): Promise<DexscreenerTokenResponse | null> => {
     if (!tokenAddress) {
       return null
     }
 
-    // Use mock data in preview environments
-    if (IS_PREVIEW) {
-      // Return the mock data for this token if available, or a generic response
-      return (
-        MOCK_DEXSCREENER_DATA[tokenAddress] || {
-          pairs: [
-            {
-              chainId: "solana",
-              dexId: "raydium",
-              url: `https://dexscreener.com/solana/${tokenAddress}`,
-              pairAddress: tokenAddress,
-              baseToken: {
-                address: tokenAddress,
-                name: "Mock Token",
-                symbol: "MOCK",
-              },
-              quoteToken: {
-                address: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-                name: "USD Coin",
-                symbol: "USDC",
-              },
-              priceNative: "0.00000100",
-              priceUsd: "0.00000100",
-              txns: {
-                m5: { buys: 5, sells: 3 },
-                h1: { buys: 50, sells: 30 },
-                h6: { buys: 300, sells: 200 },
-                h24: { buys: 600, sells: 400 },
-              },
-              volume: {
-                h24: 1000000,
-                h6: 500000,
-                h1: 100000,
-                m5: 10000,
-              },
-              priceChange: {
-                m5: 0.1,
-                h1: 0.5,
-                h6: 1.0,
-                h24: 2.0,
-              },
-              liquidity: {
-                usd: 1000000,
-                base: 500000000000,
-                quote: 500000,
-              },
-              fdv: 100000000,
-              pairCreatedAt: 1672531200000,
-            },
-          ],
-        }
-      )
-    }
-
-    // Check cache first
     const cacheKey = `token:${tokenAddress}`
     const cachedData = dexscreenerCache.get(cacheKey)
 
@@ -351,8 +181,6 @@ export const fetchDexscreenerTokenData = cache(
       }
 
       const data = await response.json()
-
-      // Store in cache
       dexscreenerCache.set(cacheKey, { data, timestamp: Date.now() })
 
       return data
@@ -363,65 +191,97 @@ export const fetchDexscreenerTokenData = cache(
   },
 )
 
-/**
- * Fetch pair data from Dexscreener API with caching
- */
-export const fetchDexscreenerPairData = cache(async (pairAddress: string): Promise<DexscreenerTokenResponse | null> => {
-  // Use mock data in preview environments
-  if (IS_PREVIEW) {
-    // Return the mock data for this pair if available, or a generic response
-    return (
-      MOCK_DEXSCREENER_DATA[pairAddress] || {
-        pairs: [
-          {
-            chainId: "solana",
-            dexId: "raydium",
-            url: `https://dexscreener.com/solana/${pairAddress}`,
-            pairAddress: pairAddress,
-            baseToken: {
-              address: pairAddress,
-              name: "Mock Token",
-              symbol: "MOCK",
-            },
-            quoteToken: {
-              address: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-              name: "USD Coin",
-              symbol: "USDC",
-            },
-            priceNative: "0.00000100",
-            priceUsd: "0.00000100",
-            txns: {
-              m5: { buys: 5, sells: 3 },
-              h1: { buys: 50, sells: 30 },
-              h6: { buys: 300, sells: 200 },
-              h24: { buys: 600, sells: 400 },
-            },
-            volume: {
-              h24: 1000000,
-              h6: 500000,
-              h1: 100000,
-              m5: 10000,
-            },
-            priceChange: {
-              m5: 0.1,
-              h1: 0.5,
-              h6: 1.0,
-              h24: 2.0,
-            },
-            liquidity: {
-              usd: 1000000,
-              base: 500000000000,
-              quote: 500000,
-            },
-            fdv: 100000000,
-            pairCreatedAt: 1672531200000,
-          },
-        ],
-      }
-    )
-  }
+export const fetchDexscreenerTokensData = cache(
+  async (tokenAddress: string): Promise<DexscreenerTokenResponse | null> => {
+    if (!tokenAddress) {
+      return null;
+    }
 
-  // Check cache first
+    const cacheKey = `token:${tokenAddress}`;
+    const cachedData = dexscreenerCache.get(cacheKey);
+
+    if (cachedData && Date.now() - cachedData.timestamp < CACHE_TTL) {
+      return cachedData.data;
+    }
+
+    try {
+      const response = await fetchWithRetry(`https://api.dexscreener.com/tokens/v1/solana/${tokenAddress}`);
+
+      if (!response.ok) {
+        console.error(`Error fetching Dexscreener data: ${response.statusText}`);
+        return null;
+      }
+
+      const data = await response.json();
+      dexscreenerCache.set(cacheKey, { data, timestamp: Date.now() });
+
+      return data;
+    } catch (error) {
+      console.error("Error fetching Dexscreener data:", error);
+      return null;
+    }
+  }
+);
+
+export async function batchFetchTokensData(
+  tokenAddresses: string[],
+): Promise<Map<string, DexscreenerTokenResponse | null>> {
+  if (tokenAddresses.length === 0) return new Map();
+  
+  const results = new Map<string, DexscreenerTokenResponse | null>();
+  const batchSize = 10;  
+  
+  for (let i = 0; i < tokenAddresses.length; i += batchSize) {
+    const batch = tokenAddresses.slice(i, i + batchSize);
+    const batchAddressString = batch.join(',');
+
+    try {
+      const url = `https://api.dexscreener.com/tokens/v1/solana/${batchAddressString}`;
+      const response = await fetchWithRetry(url);
+      
+      if (!response.ok) {
+        console.error(`Error fetching batch data: ${response.statusText}`);
+        batch.forEach(address => results.set(address, null));
+        continue;
+      }
+      
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        const groupedByToken: Record<string, DexscreenerPair[]> = {};
+        
+        data.forEach(pair => {
+          const baseAddress = pair.baseToken.address;
+          if (!groupedByToken[baseAddress]) {
+            groupedByToken[baseAddress] = [];
+          }
+          groupedByToken[baseAddress].push(pair);
+        });
+        
+        batch.forEach(address => {
+          if (groupedByToken[address]) {
+            results.set(address, { pairs: groupedByToken[address] });
+          } else {
+            results.set(address, { pairs: [] });
+          }
+        });
+      } else {
+        batch.forEach(address => results.set(address, null));
+      }
+    } catch (error) {
+      console.error(`Error fetching batch for addresses ${batchAddressString}:`, error);
+      batch.forEach(address => results.set(address, null));
+    }
+    
+    if (i + batchSize < tokenAddresses.length) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+  
+  return results;
+}
+
+export const fetchDexscreenerPairData = cache(async (pairAddress: string): Promise<DexscreenerTokenResponse | null> => {
+  
   const cacheKey = `pair:${pairAddress}`
   const cachedData = dexscreenerCache.get(cacheKey)
 
@@ -438,8 +298,6 @@ export const fetchDexscreenerPairData = cache(async (pairAddress: string): Promi
     }
 
     const data = await response.json()
-
-    // Store in cache
     dexscreenerCache.set(cacheKey, { data, timestamp: Date.now() })
 
     return data
@@ -449,88 +307,20 @@ export const fetchDexscreenerPairData = cache(async (pairAddress: string): Promi
   }
 })
 
-/**
- * Batch fetch token data to reduce API calls
- */
 export async function batchFetchTokenData(
   tokenAddresses: string[],
 ): Promise<Map<string, DexscreenerTokenResponse | null>> {
   const results = new Map<string, DexscreenerTokenResponse | null>()
-
-  // Use mock data in preview environments
-  if (IS_PREVIEW) {
-
-    for (const address of tokenAddresses) {
-      // Get mock data for this token if available, or use generic mock data
-      const mockData = MOCK_DEXSCREENER_DATA[address] || {
-        pairs: [
-          {
-            chainId: "solana",
-            dexId: "raydium",
-            url: `https://dexscreener.com/solana/${address}`,
-            pairAddress: address,
-            baseToken: {
-              address: address,
-              name: "Mock Token",
-              symbol: "MOCK",
-            },
-            quoteToken: {
-              address: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-              name: "USD Coin",
-              symbol: "USDC",
-            },
-            priceNative: "0.00000100",
-            priceUsd: "0.00000100",
-            txns: {
-              m5: { buys: 5, sells: 3 },
-              h1: { buys: 50, sells: 30 },
-              h6: { buys: 300, sells: 200 },
-              h24: { buys: 600, sells: 400 },
-            },
-            volume: {
-              h24: 1000000,
-              h6: 500000,
-              h1: 100000,
-              m5: 10000,
-            },
-            priceChange: {
-              m5: 0.1,
-              h1: 0.5,
-              h6: 1.0,
-              h24: 2.0,
-            },
-            liquidity: {
-              usd: 1000000,
-              base: 500000000000,
-              quote: 500000,
-            },
-            fdv: 100000000,
-            pairCreatedAt: 1672531200000,
-          },
-        ],
-      }
-
-      results.set(address, mockData)
-    }
-
-    return results
-  }
-
-  // Process in batches of 5 to avoid rate limits
   const batchSize = 5
   for (let i = 0; i < tokenAddresses.length; i += batchSize) {
     const batch = tokenAddresses.slice(i, i + batchSize)
-
-    // Process batch in parallel
     const batchPromises = batch.map((address) => fetchDexscreenerTokenData(address))
     const batchResults = await Promise.all(batchPromises)
 
-    // Store results
     batch.forEach((address, index) => {
       results.set(address, batchResults[index])
     })
 
-    // Add delay between batches to avoid rate limits
     if (i + batchSize < tokenAddresses.length) {
       await new Promise((resolve) => setTimeout(resolve, 1000))
     }
@@ -539,17 +329,12 @@ export async function batchFetchTokenData(
   return results
 }
 
-/**
- * Enrich token data with Dexscreener data
- */
 export async function enrichTokenDataWithDexscreener(tokenData: any) {
   try {
-    // Skip if no token address
     if (!tokenData || !tokenData.token) {
       return tokenData || {}
     }
 
-    // Special case for known large tokens - hardcode market cap values
     if (tokenData.symbol === "GOON") {
       return {
         ...tokenData,
@@ -620,14 +405,11 @@ export async function enrichTokenDataWithDexscreener(tokenData: any) {
       }
     }
 
-    // Continue with the original function for other tokens
-    // Fetch Dexscreener data for the token
     const dexscreenerData = await fetchDexscreenerTokenData(tokenData.token)
 
     if (!dexscreenerData || !dexscreenerData.pairs || dexscreenerData.pairs.length === 0) {
       return {
         ...tokenData,
-        // Provide default values when Dexscreener data is not available
         price: tokenData.price || 0,
         change24h: tokenData.change24h || 0,
         change1h: tokenData.change1h || 0,
@@ -639,10 +421,8 @@ export async function enrichTokenDataWithDexscreener(tokenData: any) {
       }
     }
 
-    // Use the first pair (usually the most liquid one)
     const pair = dexscreenerData.pairs[0]
 
-    // Enrich token data with Dexscreener data
     return {
       ...tokenData,
       price: Number.parseFloat(pair.priceUsd || "0"),
@@ -659,7 +439,6 @@ export async function enrichTokenDataWithDexscreener(tokenData: any) {
     }
   } catch (error) {
     console.error("Error enriching token data with Dexscreener:", error)
-    // Return original data if enrichment fails
     return tokenData || {}
   }
 }

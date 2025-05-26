@@ -20,452 +20,21 @@ import {
   acquireRefreshLock,
   releaseRefreshLock,
   CACHE_DURATION,
+  CACHE_DURATION_LONG,
+  getQueryLastRefreshTime,
+  setQueryLastRefreshTime,
+  getQueryTimeUntilNextRefresh
 } from "@/lib/redis";
 import { cache } from "react";
 
-// Check if we're in a preview environment or if DUNE_API_KEY is not set
 const IS_PREVIEW =
   process.env.VERCEL_ENV === "preview" ||
   process.env.ENABLE_DUNE_API === "false" ||
   !process.env.DUNE_API_KEY;
-// Mock data for preview environments
-const MOCK_DATA = {
-  tokens: [
-    {
-      token: "7gkgsqE2Uip7LUyrqEi8fyLPNSbn7GYu9yFgtxZwYUVa",
-      symbol: "DASHC",
-      name: "Dashcoin",
-      vol_usd: 3500000,
-      txs: 2000,
-      created_time: "2023-12-01T00:00:00Z",
-      description: "Dashcoin (DASHC)",
-      price: 0.00000142,
-      marketCap: 142000000,
-      num_holders: 12500,
-      change24h: 2.5,
-      change1h: 0.8,
-      liquidity: 2500000,
-      buys: 1200,
-      sells: 800,
-      volume24h: 3500000,
-    },
-    {
-      token: "Fjq9SmWmtnETAVNbir1eXhrVANi1GDoHEA4nb4tNn7w6",
-      symbol: "GOON",
-      name: "Goon Coin",
-      vol_usd: 2800000,
-      txs: 1800,
-      created_time: "2023-11-15T00:00:00Z",
-      description: "Goon Coin (GOON)",
-      price: 0.00000098,
-      marketCap: 98000000,
-      num_holders: 9800,
-      change24h: 1.2,
-      change1h: 0.3,
-      liquidity: 1800000,
-      buys: 950,
-      sells: 650,
-      volume24h: 2800000,
-    },
-    {
-      token: "8JUjWjvdgaP7aLQzU4YQgvFgzxpuEpJhwTCLUdZ9icFw",
-      symbol: "WIF",
-      name: "Wif Coin",
-      vol_usd: 4200000,
-      txs: 2400,
-      created_time: "2023-10-20T00:00:00Z",
-      description: "Wif Coin (WIF)",
-      price: 0.00000187,
-      marketCap: 187000000,
-      num_holders: 15000,
-      change24h: 3.1,
-      change1h: 1.2,
-      liquidity: 3200000,
-      buys: 1500,
-      sells: 900,
-      volume24h: 4200000,
-    },
-    {
-      token: "5tN42n9vMi6ubp67Uy4NnmM5DMZYN8aS8GeB3bEDHr6E",
-      symbol: "BOME",
-      name: "Bome Token",
-      vol_usd: 2100000,
-      txs: 1900,
-      created_time: "2023-09-05T00:00:00Z",
-      description: "Bome Token (BOME)",
-      price: 0.00000076,
-      marketCap: 76000000,
-      num_holders: 7600,
-      change24h: -1.5,
-      change1h: -0.5,
-      liquidity: 1500000,
-      buys: 800,
-      sells: 1100,
-      volume24h: 2100000,
-    },
-    {
-      token: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
-      symbol: "BONK",
-      name: "Bonk",
-      vol_usd: 5800000,
-      txs: 3300,
-      created_time: "2023-08-10T00:00:00Z",
-      description: "Bonk (BONK)",
-      price: 0.00000215,
-      marketCap: 215000000,
-      num_holders: 21500,
-      change24h: 4.2,
-      change1h: 1.8,
-      liquidity: 4500000,
-      buys: 2200,
-      sells: 1100,
-      volume24h: 5800000,
-    },
-    {
-      token: "6LUFtdLcK3ce8JZ9WfbDsqNFT7K9yfMQP5hLyJUEi8Vu",
-      symbol: "DUPE",
-      name: "Dupe Token",
-      vol_usd: 1500000,
-      txs: 1200,
-      created_time: "2023-07-15T00:00:00Z",
-      description: "Dupe Token (DUPE)",
-      price: 0.00000056,
-      marketCap: 56000000,
-      num_holders: 5600,
-      change24h: -2.3,
-      change1h: -0.7,
-      liquidity: 1200000,
-      buys: 500,
-      sells: 700,
-      volume24h: 1500000,
-    },
-    {
-      token: "9LYGEEMJAqRSxdKXYBRMXJ4pzoZmTLqnZRF2mCGX8h4W",
-      symbol: "PEPE",
-      name: "Pepe Coin",
-      vol_usd: 3200000,
-      txs: 2100,
-      created_time: "2023-06-20T00:00:00Z",
-      description: "Pepe Coin (PEPE)",
-      price: 0.00000123,
-      marketCap: 123000000,
-      num_holders: 12300,
-      change24h: 3.7,
-      change1h: 1.5,
-      liquidity: 2800000,
-      buys: 1300,
-      sells: 800,
-      volume24h: 3200000,
-    },
-    {
-      token: "3fTR8GGL2mniJP1ycpHgvDz1qhTijKHMmPvDQcHmXYXP",
-      symbol: "FROG",
-      name: "Frog Token",
-      vol_usd: 1800000,
-      txs: 1500,
-      created_time: "2023-05-10T00:00:00Z",
-      description: "Frog Token (FROG)",
-      price: 0.00000089,
-      marketCap: 89000000,
-      num_holders: 8900,
-      change24h: 1.9,
-      change1h: 0.6,
-      liquidity: 1700000,
-      buys: 900,
-      sells: 600,
-      volume24h: 1800000,
-    },
-    {
-      token: "7KVexUFGMpYX8xkQ4K5ZfS1bLzwcwHJQqZMXYWjErG6Z",
-      symbol: "MOON",
-      name: "Moon Coin",
-      vol_usd: 2500000,
-      txs: 1700,
-      created_time: "2023-04-15T00:00:00Z",
-      description: "Moon Coin (MOON)",
-      price: 0.00000112,
-      marketCap: 112000000,
-      num_holders: 11200,
-      change24h: 2.8,
-      change1h: 1.0,
-      liquidity: 2200000,
-      buys: 1100,
-      sells: 600,
-      volume24h: 2500000,
-    },
-    {
-      token: "2QK9vxydd7WoDwvVFT5JSU8cwE9xmbJSzeqbRESiXqNL",
-      symbol: "DOGE",
-      name: "Doge Token",
-      vol_usd: 3800000,
-      txs: 2300,
-      created_time: "2023-03-20T00:00:00Z",
-      description: "Doge Token (DOGE)",
-      price: 0.00000167,
-      marketCap: 167000000,
-      num_holders: 16700,
-      change24h: 3.5,
-      change1h: 1.3,
-      liquidity: 3500000,
-      buys: 1400,
-      sells: 900,
-      volume24h: 3800000,
-    },
-  ],
-  marketCapTimeData: [
-    {
-      date: "2023-01-01",
-      marketcap: 500000000,
-      num_holders: 50000,
-      nh_diff_1d: 1000,
-      nh_diff_7d: 5000,
-      nh_diff_30d: 15000,
-    },
-    {
-      date: "2023-02-01",
-      marketcap: 550000000,
-      num_holders: 55000,
-      nh_diff_1d: 1100,
-      nh_diff_7d: 5500,
-      nh_diff_30d: 16500,
-    },
-    {
-      date: "2023-03-01",
-      marketcap: 600000000,
-      num_holders: 60000,
-      nh_diff_1d: 1200,
-      nh_diff_7d: 6000,
-      nh_diff_30d: 18000,
-    },
-    {
-      date: "2023-04-01",
-      marketcap: 650000000,
-      num_holders: 65000,
-      nh_diff_1d: 1300,
-      nh_diff_7d: 6500,
-      nh_diff_30d: 19500,
-    },
-    {
-      date: "2023-05-01",
-      marketcap: 700000000,
-      num_holders: 70000,
-      nh_diff_1d: 1400,
-      nh_diff_7d: 7000,
-      nh_diff_30d: 21000,
-    },
-    {
-      date: "2023-06-01",
-      marketcap: 750000000,
-      num_holders: 75000,
-      nh_diff_1d: 1500,
-      nh_diff_7d: 7500,
-      nh_diff_30d: 22500,
-    },
-    {
-      date: "2023-07-01",
-      marketcap: 800000000,
-      num_holders: 80000,
-      nh_diff_1d: 1600,
-      nh_diff_7d: 8000,
-      nh_diff_30d: 24000,
-    },
-    {
-      date: "2023-08-01",
-      marketcap: 850000000,
-      num_holders: 85000,
-      nh_diff_1d: 1700,
-      nh_diff_7d: 8500,
-      nh_diff_30d: 25500,
-    },
-    {
-      date: "2023-09-01",
-      marketcap: 900000000,
-      num_holders: 90000,
-      nh_diff_1d: 1800,
-      nh_diff_7d: 9000,
-      nh_diff_30d: 27000,
-    },
-    {
-      date: "2023-10-01",
-      marketcap: 950000000,
-      num_holders: 95000,
-      nh_diff_1d: 1900,
-      nh_diff_7d: 9500,
-      nh_diff_30d: 28500,
-    },
-    {
-      date: "2023-11-01",
-      marketcap: 1000000000,
-      num_holders: 100000,
-      nh_diff_1d: 2000,
-      nh_diff_7d: 10000,
-      nh_diff_30d: 30000,
-    },
-    {
-      date: "2023-12-01",
-      marketcap: 1050000000,
-      num_holders: 105000,
-      nh_diff_1d: 2100,
-      nh_diff_7d: 10500,
-      nh_diff_30d: 31500,
-    },
-  ],
-  tokenMarketCaps: [
-    {
-      date: "2023-12-01",
-      token_mint_address: "7gkgsqE2Uip7LUyrqEi8fyLPNSbn7GYu9yFgtxZwYUVa",
-      name: "Dashcoin",
-      symbol: "DASHC",
-      market_cap_usd: 142000000,
-      num_holders: 12500,
-      rn: 1,
-    },
-    {
-      date: "2023-12-01",
-      token_mint_address: "Fjq9SmWmtnETAVNbir1eXhrVANi1GDoHEA4nb4tNn7w6",
-      name: "Goon Coin",
-      symbol: "GOON",
-      market_cap_usd: 98000000,
-      num_holders: 9800,
-      rn: 2,
-    },
-    {
-      date: "2023-12-01",
-      token_mint_address: "8JUjWjvdgaP7aLQzU4YQgvFgzxpuEpJhwTCLUdZ9icFw",
-      name: "Wif Coin",
-      symbol: "WIF",
-      market_cap_usd: 187000000,
-      num_holders: 15000,
-      rn: 3,
-    },
-    {
-      date: "2023-12-01",
-      token_mint_address: "5tN42n9vMi6ubp67Uy4NnmM5DMZYN8aS8GeB3bEDHr6E",
-      name: "Bome Token",
-      symbol: "BOME",
-      market_cap_usd: 76000000,
-      num_holders: 7600,
-      rn: 4,
-    },
-    {
-      date: "2023-12-01",
-      token_mint_address: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
-      name: "Bonk",
-      symbol: "BONK",
-      market_cap_usd: 215000000,
-      num_holders: 21500,
-      rn: 5,
-    },
-    {
-      date: "2023-12-01",
-      token_mint_address: "6LUFtdLcK3ce8JZ9WfbDsqNFT7K9yfMQP5hLyJUEi8Vu",
-      name: "Dupe Token",
-      symbol: "DUPE",
-      market_cap_usd: 56000000,
-      num_holders: 5600,
-      rn: 6,
-    },
-    {
-      date: "2023-12-01",
-      token_mint_address: "9LYGEEMJAqRSxdKXYBRMXJ4pzoZmTLqnZRF2mCGX8h4W",
-      name: "Pepe Coin",
-      symbol: "PEPE",
-      market_cap_usd: 123000000,
-      num_holders: 12300,
-      rn: 7,
-    },
-    {
-      date: "2023-12-01",
-      token_mint_address: "3fTR8GGL2mniJP1ycpHgvDz1qhTijKHMmPvDQcHmXYXP",
-      name: "Frog Token",
-      symbol: "FROG",
-      market_cap_usd: 89000000,
-      num_holders: 8900,
-      rn: 8,
-    },
-    {
-      date: "2023-12-01",
-      token_mint_address: "7KVexUFGMpYX8xkQ4K5ZfS1bLzwcwHJQqZMXYWjErG6Z",
-      name: "Moon Coin",
-      symbol: "MOON",
-      market_cap_usd: 112000000,
-      num_holders: 11200,
-      rn: 9,
-    },
-    {
-      date: "2023-12-01",
-      token_mint_address: "2QK9vxydd7WoDwvVFT5JSU8cwE9xmbJSzeqbRESiXqNL",
-      name: "Doge Token",
-      symbol: "DOGE",
-      market_cap_usd: 167000000,
-      num_holders: 16700,
-      rn: 10,
-    },
-  ],
-  totalMarketCap: {
-    latest_data_at: new Date().toISOString(),
-    total_marketcap_usd: 1050000000,
-  },
-  newTokens: [
-    {
-      token_mint_address: "7gkgsqE2Uip7LUyrqEi8fyLPNSbn7GYu9yFgtxZwYUVa",
-      created_time: "2023-12-01T00:00:00Z",
-      name: "Dashcoin",
-      symbol: "DASHC",
-      market_cap_usd: 142000000,
-      num_holders: 12500,
-    },
-    {
-      token_mint_address: "Fjq9SmWmtnETAVNbir1eXhrVANi1GDoHEA4nb4tNn7w6",
-      created_time: "2023-11-15T00:00:00Z",
-      name: "Goon Coin",
-      symbol: "GOON",
-      market_cap_usd: 98000000,
-      num_holders: 9800,
-    },
-    {
-      token_mint_address: "8JUjWjvdgaP7aLQzU4YQgvFgzxpuEpJhwTCLUdZ9icFw",
-      created_time: "2023-10-20T00:00:00Z",
-      name: "Wif Coin",
-      symbol: "WIF",
-      market_cap_usd: 187000000,
-      num_holders: 15000,
-    },
-    {
-      token_mint_address: "5tN42n9vMi6ubp67Uy4NnmM5DMZYN8aS8GeB3bEDHr6E",
-      created_time: "2023-09-05T00:00:00Z",
-      name: "Bome Token",
-      symbol: "BOME",
-      market_cap_usd: 76000000,
-      num_holders: 7600,
-    },
-    {
-      token_mint_address: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
-      created_time: "2023-08-10T00:00:00Z",
-      name: "Bonk",
-      symbol: "BONK",
-      market_cap_usd: 215000000,
-      num_holders: 21500,
-    },
-  ],
-  marketStats: {
-    totalMarketCap: 1050000000,
-    volume24h: 25000000,
-    transactions24h: 18000,
-    feeEarnings24h: 75000,
-    lifetimeVolume: 750000000,
-    coinLaunches: 10,
-  },
-};
 
-// This is your Dune API key from environment variables
 const DUNE_API_KEY = process.env.DUNE_API_KEY;
 
-/**
- * Fetch results directly from a Dune query using the results endpoint
- */
 async function fetchDuneQueryResults(queryId: number, limit = 1000) {
-
   if (!DUNE_API_KEY) {
     console.error("DUNE_API_KEY is not set");
     return { rows: [] };
@@ -473,10 +42,6 @@ async function fetchDuneQueryResults(queryId: number, limit = 1000) {
 
   try {
     const response = await fetch(`https://api.dune.com/api/v1/query/${queryId}/results?limit=${limit}`,
-
-      //  -------------! previous api
-      
-      // `'https://api.dune.com/api/v1/materialized-views/dune.dashers.result_believe_token_summary_latest`,
       {
         headers: {
           "X-Dune-API-Key": DUNE_API_KEY,
@@ -497,45 +62,25 @@ async function fetchDuneQueryResults(queryId: number, limit = 1000) {
   }
 }
 
-
-/**
- * Fetch all token data directly from Dune query 5129959 (Pie Chart of Believe Coins by Market Cap)
- * This is used internally by the paginated function
- */
 export async function fetchAllTokensFromDune(): Promise<TokenData[]> {
   try {
+    const { lastRefreshTime } = await getQueryTimeUntilNextRefresh(
+      CACHE_KEYS.ALL_TOKENS_LAST_REFRESH,
+      CACHE_DURATION
+    );
 
-    let lastRefreshTime = new Date(Date.now() -  34 * 60 * 1000); // Default to 1 hours ago
-
-    try {
-      const refreshInfo = await getTimeUntilNextDuneRefresh();
-      lastRefreshTime = refreshInfo.lastRefreshTime;
-    } catch (error) {
-      console.error("Error getting refresh time info:", error);
-    }
-
-    if ( (Date.now() - lastRefreshTime.getTime()) < 1 * 60 * 60 * 1000) {
-        const cachedData = await getFromCache<TokenData[]>(CACHE_KEYS.ALL_TOKENS)
-          if (cachedData && cachedData.length > 0) {
-          return cachedData
-        }
+    if ((Date.now() - lastRefreshTime.getTime()) < CACHE_DURATION) {
+      const cachedData = await getFromCache<TokenData[]>(CACHE_KEYS.ALL_TOKENS);
+      if (cachedData && cachedData.length > 0) {
+        console.log("Last refresh time less than 1 hour, fetching all tokens data from cache");
+        return cachedData;
       }
-    
-    // Check if data exists in cache
-    
-
-    // Use mock data in preview environments
-    if (IS_PREVIEW) {
-      const mockData = [...MOCK_DATA.tokens];
-      await setInCache(CACHE_KEYS.ALL_TOKENS, mockData);
-      return mockData;
     }
 
-    // Use the new query 5140151 which has all the data we need
+    console.log("It's time to refresh fetching all tokens data from dune");
     const result = await fetchDuneQueryResults(5140151);
     
     if (result && result.rows && result.rows.length > 0) {
-      // Process the data from the query
       const tokens = result.rows.map((row: any) => {
         return {
           token: row.token || "",
@@ -545,27 +90,27 @@ export async function fetchAllTokensFromDune(): Promise<TokenData[]> {
           txs: Number.parseInt(row.txs || 0),
           created_time: row.created_time || new Date().toISOString(),
           description: row.name ? `${row.name} (${row.symbol || ""})` : "",
-          price: 0, // Not available in this query
+          price: 0, 
           marketCap: Number.parseFloat(row.market_cap_usd || 0),
           num_holders: Number.parseInt(row.num_holders || 0),
-          change24h: 0, // Not available in this query
-          change1h: 0, // Not available in this query
-          liquidity: 0, // Not available in this query
-          buys: 0, // Not available in this query
-          sells: 0, // Not available in this query
+          change24h: 0, 
+          change1h: 0, 
+          liquidity: 0, 
+          buys: 0, 
+          sells: 0, 
           volume24h: Number.parseFloat(row.vol_usd || 0),
           token_url: row.token_url || "",
           first_trade_time: row.first_trade_time || "",
         };
       });
 
-      // Sort tokens by market cap (descending)
       const sortedTokens = tokens.sort(
         (a: any, b: any) => (b.marketCap || 0) - (a.marketCap || 0)
       );
 
-      // Store in cache
       await setInCache(CACHE_KEYS.ALL_TOKENS, sortedTokens);
+      await setQueryLastRefreshTime(CACHE_KEYS.ALL_TOKENS_LAST_REFRESH);
+      
       return sortedTokens;
     }
 
@@ -577,9 +122,6 @@ export async function fetchAllTokensFromDune(): Promise<TokenData[]> {
   }
 }
 
-/**
- * Fetch paginated token data directly from Dune
- */
 export async function fetchPaginatedTokens(
   page = 1,
   pageSize = 10,
@@ -588,10 +130,8 @@ export async function fetchPaginatedTokens(
   searchTerm = ""
 ): Promise<PaginatedTokenResponse> {
   try {
-    // Get all tokens from cache or fetch if needed
     const allTokens = await fetchAllTokensFromDune();
 
-    // Filter tokens based on search term if provided
     const filteredTokens = searchTerm.trim() !== "" 
       ? allTokens.filter((token) => {
           const symbolMatch = token.symbol ? 
@@ -605,11 +145,8 @@ export async function fetchPaginatedTokens(
         })
       : allTokens;
 
-    // Calculate total tokens and pages based on filtered tokens
     const totalTokens = filteredTokens.length;
     const totalPages = Math.ceil(totalTokens / pageSize) || 1;
-
-    // Sort the filtered tokens based on the requested sort field and direction
     const sortedTokens = [...filteredTokens].sort((a, b) => {
       const aValue = a[sortField as keyof typeof a] || 0;
       const bValue = b[sortField as keyof typeof a] || 0;
@@ -618,19 +155,10 @@ export async function fetchPaginatedTokens(
         ? (aValue as number) - (bValue as number)
         : (bValue as number) - (aValue as number);
     });
-
-    // Calculate start and end indices for the requested page
     const startIndex = (page - 1) * pageSize;
     const endIndex = Math.min(startIndex + pageSize, totalTokens);
-
-    // Get the tokens for the current page from the sorted array
     const pageTokens = sortedTokens.slice(startIndex, endIndex);
 
-    console.log(
-      `Fetching page ${page} (${startIndex}-${endIndex}) of ${totalPages} pages with search: ${searchTerm}`
-    );
-    
-    // Return the paginated response
     return {
       tokens: pageTokens,
       page,
@@ -650,13 +178,8 @@ export async function fetchPaginatedTokens(
   }
 }
 
-/**
- * Legacy function to fetch all token data at once
- * This is kept for backward compatibility but should be avoided for performance reasons
- */
 export async function fetchTokenData(): Promise<TokenData[]> {
   try {
-    // Use the paginated function but get only the first 10 tokens
     const paginatedResponse = await fetchPaginatedTokens(1, 10);
     return paginatedResponse.tokens;
   } catch (error) {
@@ -665,24 +188,25 @@ export async function fetchTokenData(): Promise<TokenData[]> {
   }
 }
 
-/**
- * Fetch market cap over time data (5119241)
- */
 export async function fetchMarketCapOverTime(): Promise<MarketCapTimeData[]> {
   const MARKET_CAP_QUERY_ID = 5119241;
   try {
-    // Check if data exists in cache
-    // const cachedData = await getFromCache<MarketCapTimeData[]>(
-    //   CACHE_KEYS.MARKET_CAP_TIME
-    // );
-    // if (cachedData && cachedData.length > 0) {
-    //   return cachedData;
-    // }
+    const { lastRefreshTime } = await getQueryTimeUntilNextRefresh(
+      CACHE_KEYS.MARKET_CAP_TIME_LAST_REFRESH,
+      CACHE_DURATION_LONG
+    );
 
-    // Use mock data in preview environments
+    if ((Date.now() - lastRefreshTime.getTime()) < CACHE_DURATION_LONG) {
+      const cachedData = await getFromCache<MarketCapTimeData[]>(CACHE_KEYS.MARKET_CAP_TIME);
+      if (cachedData && cachedData.length > 0) {
+        console.log("Market cap time: Less than 12 hours since last refresh, using cache");
+        return cachedData;
+      }
+    }
 
+    console.log("Market cap time: More than 12 hours since last refresh, fetching from Dune");
     const result = await fetchDuneQueryResults(MARKET_CAP_QUERY_ID);
-
+    
     if (result && result.rows && result.rows.length > 0) {
       const data = result.rows.map((row: any) => ({
         date: row.date || new Date().toISOString().split("T")[0],
@@ -693,8 +217,9 @@ export async function fetchMarketCapOverTime(): Promise<MarketCapTimeData[]> {
         nh_diff_30d: Number.parseFloat(row.nh_diff_30d || 0),
       }));
 
-      // Store in cache
       await setInCache(CACHE_KEYS.MARKET_CAP_TIME, data);
+      await setQueryLastRefreshTime(CACHE_KEYS.MARKET_CAP_TIME_LAST_REFRESH);
+      
       return data;
     }
 
@@ -708,37 +233,27 @@ export async function fetchMarketCapOverTime(): Promise<MarketCapTimeData[]> {
   }
 }
 
-/**
- * Fetch token market cap data for pie chart (5129959)
- */
 export async function fetchTokenMarketCaps(): Promise<TokenMarketCapData[]> {
   try {
+    // const { lastRefreshTime } = await getQueryTimeUntilNextRefresh(
+    //   CACHE_KEYS.TOKEN_MARKET_CAPS_LAST_REFRESH,
+    //   CACHE_DURATION
+    // );
+    
+    // if ((Date.now() - lastRefreshTime.getTime()) < CACHE_DURATION) {
+    //   const cachedData = await getFromCache<TokenMarketCapData[]>(
+    //     CACHE_KEYS.TOKEN_MARKET_CAPS
+    //   );
+    //   if (cachedData && cachedData.length > 0) {
+    //     console.log("Token market caps: Less than 1 hour since last refresh, using cache");
+    //     return cachedData;
+    //   }
+    // }
 
-    let lastRefreshTime = new Date(Date.now() -  34 * 60 * 1000); // Default to 1 hours ago
-
-    try {
-      const refreshInfo = await getTimeUntilNextDuneRefresh();
-      lastRefreshTime = refreshInfo.lastRefreshTime;
-
-      console.log("Last refresh time------------------------->", lastRefreshTime)
-    } catch (error) {
-      console.error("Error getting refresh time info:", error);
-    }
-
-    if(Date.now() - lastRefreshTime.getTime() > 1 * 60 * 60 *1000){
-      const cachedData = await getFromCache<TokenMarketCapData[]>(
-        CACHE_KEYS.TOKEN_MARKET_CAPS
-      );
-      if (cachedData && cachedData.length > 0) {
-        console.log("It's not time to refresh, fetching token market cap data from cache HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH", cachedData);
-        return cachedData;
-      }
-    }
-
-    const result = await fetchDuneQueryResults(5140151);
+    // console.log("Token market caps: More than 1 hour since last refresh, fetching from Dune");
+      const result = await fetchDuneQueryResults(5140151);
 
     if (result && result.rows && result.rows.length > 0) {
-      // Get the current date for all entries
       const currentDate = new Date().toISOString().split("T")[0];
 
       const data = result.rows.map((row: any, index: number) => ({
@@ -748,20 +263,12 @@ export async function fetchTokenMarketCaps(): Promise<TokenMarketCapData[]> {
         symbol: row.symbol || "???",
         market_cap_usd: Number.parseFloat(row.market_cap_usd || 0),
         num_holders: Number.parseInt(row.num_holders || 0),
-        rn: index + 1, // Assign rank based on array index
+        rn: index + 1,
       }));
 
-      const now = Date.now();
-      const nextRefresh = now + CACHE_DURATION;
-
-      try {
-        await setInCache(CACHE_KEYS.TOKEN_MARKET_CAPS, data);
-        await setInCache(CACHE_KEYS.LAST_REFRESH_TIME, now);
-        await setInCache(CACHE_KEYS.NEXT_REFRESH_TIME, nextRefresh);
-      } catch (error) {
-        console.error("Error updating refresh timestamps:", error);
-      }
-      console.log("It's time to refresh, fetching token market cap data from dune HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH", data);
+      await setInCache(CACHE_KEYS.TOKEN_MARKET_CAPS, data);
+      await setQueryLastRefreshTime(CACHE_KEYS.TOKEN_MARKET_CAPS_LAST_REFRESH);
+      
       return data;
     }
 
@@ -775,12 +282,8 @@ export async function fetchTokenMarketCaps(): Promise<TokenMarketCapData[]> {
   }
 }
 
-/**
- * Fetch total market cap data (5130872)
- */
 export async function fetchTotalMarketCap(): Promise<TotalMarketCapData> {
   try {
-    // Check if data exists in cache
     const cachedData = await getFromCache<TotalMarketCapData>(
       CACHE_KEYS.TOTAL_MARKET_CAP
     );
@@ -788,19 +291,9 @@ export async function fetchTotalMarketCap(): Promise<TotalMarketCapData> {
       return cachedData;
     }
 
-    // Use mock data in preview environments
-    if (IS_PREVIEW) {
-      console.log("Using mock total market cap data in preview environment");
-      const mockData = { ...MOCK_DATA.totalMarketCap };
-      await setInCache(CACHE_KEYS.TOTAL_MARKET_CAP, mockData);
-      return mockData;
-    }
-
-    // IMPORTANT: Make sure we're using query 5140151 consistently
     const result = await fetchDuneQueryResults(5140151);
 
     if (result && result.rows && result.rows.length > 0) {
-      // Calculate total market cap by summing all token market caps
       const totalMarketCap = result.rows.reduce((sum: number, row: any) => {
         return sum + Number.parseFloat(row.market_cap_usd || 0);
       }, 0);
@@ -810,7 +303,6 @@ export async function fetchTotalMarketCap(): Promise<TotalMarketCapData> {
         total_marketcap_usd: totalMarketCap,
       };
 
-      // Store in cache
       await setInCache(CACHE_KEYS.TOTAL_MARKET_CAP, data);
       return data;
     }
@@ -831,12 +323,8 @@ export async function fetchTotalMarketCap(): Promise<TotalMarketCapData> {
   }
 }
 
-/**
- * Fetch new token data (5129347)
- */
 export async function fetchNewTokens(limit = 10): Promise<NewTokenData[]> {
   try {
-    // Check if data exists in cache
     const cachedData = await getFromCache<NewTokenData[]>(
       CACHE_KEYS.NEW_TOKENS
     );
@@ -844,18 +332,9 @@ export async function fetchNewTokens(limit = 10): Promise<NewTokenData[]> {
       return cachedData.slice(0, limit);
     }
 
-    // Use mock data in preview environments
-    if (IS_PREVIEW) {
-      console.log("Using mock new token data in preview environment");
-      const mockData = [...MOCK_DATA.newTokens];
-      await setInCache(CACHE_KEYS.NEW_TOKENS, mockData);
-      return mockData.slice(0, limit);
-    }
-
     const result = await fetchDuneQueryResults(5140151);
 
     if (result && result.rows && result.rows.length > 0) {
-      // Sort by created_time (newest first)
       const sortedRows = [...result.rows].sort((a, b) => {
         return (
           new Date(b.created_time).getTime() -
@@ -874,7 +353,6 @@ export async function fetchNewTokens(limit = 10): Promise<NewTokenData[]> {
         num_holders: Number.parseInt(row.num_holders || 0),
       }));
 
-      // Store in cache
       await setInCache(CACHE_KEYS.NEW_TOKENS, data);
       return data.slice(0, limit);
     }
@@ -886,84 +364,52 @@ export async function fetchNewTokens(limit = 10): Promise<NewTokenData[]> {
   }
 }
 
-/**
- * Fetch market statistics based on token data
- */
-
-
-
-
 export async function fetchMarketStats(): Promise<MarketStats> {
   try {
-
-    let lastRefreshTime = new Date(Date.now() -  34 * 60 * 1000); // Default to 1 hours ago
-
-    try {
-      const refreshInfo = await getTimeUntilNextDuneRefresh();
-      lastRefreshTime = refreshInfo.lastRefreshTime;
-
-    } catch (error) {
-      console.error("Error getting refresh time info:", error);
-    }
-
-    if ( (Date.now() - lastRefreshTime.getTime()) < 1 * 60 * 60 * 1000) {
+    const { lastRefreshTime } = await getQueryTimeUntilNextRefresh(
+      CACHE_KEYS.MARKET_STATS_LAST_REFRESH,
+      CACHE_DURATION
+    );
+    
+    if ((Date.now() - lastRefreshTime.getTime()) < CACHE_DURATION) {
       const cachedData = await getFromCache<MarketStats>(CACHE_KEYS.MARKET_STATS);
-      console.log("It's not time to refresh, fetching data from cache HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH", cachedData);
       if (cachedData && cachedData.totalMarketCap !== undefined) {
+        console.log("Market stats: Less than 1 hour since last refresh, using cache");
         return cachedData;
       }
     }
 
-    // Fetch data from the new query
+    console.log("Market stats: More than 1 hour since last refresh, fetching from Dune");
     const result = await fetchDuneQueryResults(5140151);
 
     if (result && result.rows && result.rows.length > 0) {
-      // Calculate total market cap
       const totalMarketCap = result.rows.reduce((sum: number, row: any) => {
         return sum + Number.parseFloat(row.market_cap_usd || 0);
       }, 0);
 
-      // Calculate total volume
       const volume24h = result.rows.reduce((sum: number, row: any) => {
         return sum + Number.parseFloat(row.vol_usd || 0);
       }, 0);
-
-      // Calculate total transactions
       const transactions24h = result.rows.reduce((sum: number, row: any) => {
         return sum + Number.parseInt(row.txs || 0);
       }, 0);
-
-      // Calculate fee earnings (e.g., 0.3% of volume)
       const feeEarnings24h = volume24h * 0.003;
-
-      // Count total number of tokens
       const coinLaunches = result.rows.length;
-
       const data = {
         totalMarketCap,
         volume24h,
         transactions24h,
         feeEarnings24h,
-        lifetimeVolume: volume24h * 30, // Estimate lifetime as 30 days of volume
+        lifetimeVolume: volume24h * 30,
         coinLaunches,
       };
 
-      // Store in cache
-      const now = Date.now();
-      const nextRefresh = now + CACHE_DURATION;
-
-      try {
-        await setInCache(CACHE_KEYS.MARKET_STATS, data);
-        await setInCache(CACHE_KEYS.LAST_REFRESH_TIME, now);
-        await setInCache(CACHE_KEYS.NEXT_REFRESH_TIME, nextRefresh);
-      } catch (error) {
-        console.error("Error updating refresh timestamps:", error);
-      }
-
-      console.log("It's time to fetch data from dune and storing this data to cach HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH", data);
+      await setInCache(CACHE_KEYS.MARKET_STATS, data);
+      await setQueryLastRefreshTime(CACHE_KEYS.MARKET_STATS_LAST_REFRESH);
+      
       return data;
     }
-
+    
     console.warn(
       "No token data available to calculate market stats, using default values"
     );
@@ -978,7 +424,6 @@ export async function fetchMarketStats(): Promise<MarketStats> {
     };
   } catch (error) {
     console.error("Error calculating market stats:", error);
-    // Return default values in case of error
     return {
       totalMarketCap: 0,
       volume24h: 0,
@@ -990,9 +435,6 @@ export async function fetchMarketStats(): Promise<MarketStats> {
   }
 }
 
-/**
- * Fetch data for a specific token
- */
 export async function fetchTokenDetails(
   symbol: string
 ): Promise<TokenData | null> {
@@ -1002,18 +444,8 @@ export async function fetchTokenDetails(
       return null;
     }
 
-    // Use mock data in preview environments
-    if (IS_PREVIEW) {
-      const token = MOCK_DATA.tokens.find(
-        (t) => t.symbol.toLowerCase() === symbol.toLowerCase()
-      );
-      return token || null;
-    }
-
-    // Get all tokens from cache or fetch if needed
     const allTokens = await fetchAllTokensFromDune();
     console.log("Successfully fetched all tokens data");
-    // Find the token in the cache
     const token = allTokens.find(
       (token) => token.symbol.toLowerCase() === symbol.toLowerCase()
     );
@@ -1030,22 +462,10 @@ export async function fetchTokenDetails(
   }
 }
 
-// Get time until next refresh using Redis cache
 export async function getTimeUntilNextDuneRefresh(): Promise<{
   timeRemaining: number;
   lastRefreshTime: Date;
 }> {
-  // In preview, simulate a refresh that happened 1 hour ago
-  if (IS_PREVIEW) {
-    const mockLastRefreshTime = new Date(Date.now() - 30 * 60 * 1000); // 1 hour ago
-    const timeRemaining = 30 * 60 * 1000; // 3 hours remaining (out of 4)
-
-    return {
-      timeRemaining,
-      lastRefreshTime: mockLastRefreshTime,
-    };
-  }
-
   try {
     const { timeRemaining, lastRefreshTime } = await getTimeUntilNextRefresh();
 
@@ -1055,151 +475,9 @@ export async function getTimeUntilNextDuneRefresh(): Promise<{
     };
   } catch (error) {
     console.error("Error getting time until next Dune refresh:", error);
-    // Return default values in case of error
     return {
       timeRemaining: 0,
       lastRefreshTime: new Date(Date.now() - CACHE_DURATION),
     };
-  }
-}
-
-
-
-// Force refresh all Dune data
-export async function forceDuneDataRefresh(): Promise<boolean> {
-  try {
-    console.log("Forcing Dune data refresh...", IS_PREVIEW);
-    if (IS_PREVIEW) {
-      return true;
-    }
-
-    // Try to acquire the refresh lock
-    let lockAcquired = false;
-    try {
-      lockAcquired = await acquireRefreshLock();
-    } catch (error) {
-      console.error("Error acquiring refresh lock:", error);
-      // Continue without lock in case of error
-    }
-
-    if (!lockAcquired) {
-      return false;
-    }
-
-    try {
-      // Fetch data from each query separately with error handling
-      try {
-        await fetchAllTokensFromDune(); // Uses query 5140151
-      } catch (error) {
-        console.error("Error fetching all tokens data:", error);
-      }
-
-      try {
-        await fetchMarketCapOverTime(); // Uses query 5119241
-        console.log("Successfully fetched market cap over time data");
-      } catch (error) {
-        console.error("Error fetching market cap over time data:", error);
-      }
-
-      // Update refresh timestamps
-      const now = Date.now();
-      const nextRefresh = now + CACHE_DURATION;
-
-      try {
-        await setInCache(CACHE_KEYS.LAST_REFRESH_TIME, now);
-        await setInCache(CACHE_KEYS.NEXT_REFRESH_TIME, nextRefresh);
-      } catch (error) {
-        console.error("Error updating refresh timestamps:", error);
-      }
-
-      return true;
-    } finally {
-      // Always release the lock when done
-      try {
-        await releaseRefreshLock();
-      } catch (error) {
-        console.error("Error releasing refresh lock:", error);
-      }
-    }
-  } catch (error) {
-    console.error("Error forcing Dune data refresh:", error);
-    return false;
-  }
-}
-
-// This function will be called by the cron job to refresh data
-export async function refreshDuneData(): Promise<boolean> {
-  try {
-    // Skip in preview environments
-    if (IS_PREVIEW) {
-      return true;
-    }
-
-    // Check if it's time to refresh
-    let refreshInfo;
-    try {
-      refreshInfo = await getTimeUntilNextRefresh();
-    } catch (error) {
-      console.error("Error getting refresh time info:", error);
-      // If we can't get refresh info, assume it's time to refresh
-      refreshInfo = {
-        timeRemaining: 0,
-        lastRefreshTime: null,
-        nextRefreshTime: null,
-      };
-    }
-
-    // If more than 1 minutes remaining, skip refresh
-    if (refreshInfo.timeRemaining > 1 * 60 * 1000) {
-      return false;
-    }
-
-    // Try to acquire the refresh lock
-    let lockAcquired = false;
-    try {
-      lockAcquired = await acquireRefreshLock();
-    } catch (error) {
-      console.error("Error acquiring refresh lock:", error);
-    }
-
-    if (!lockAcquired) {
-      return false;
-    }
-
-    try {
-      try {
-        await fetchAllTokensFromDune(); // Uses query 5140151
-      } catch (error) {
-        console.error("Error fetching all tokens data:", error);
-      }
-
-      try {
-        await fetchMarketCapOverTime(); // Uses query 5119241
-      } catch (error) {
-        console.error("Error fetching market cap over time data:", error);
-      }
-
-      const now = Date.now();
-      const nextRefresh = now + CACHE_DURATION;
-
-      try {
-        await setInCache(CACHE_KEYS.LAST_REFRESH_TIME, now);
-        await setInCache(CACHE_KEYS.NEXT_REFRESH_TIME, nextRefresh);
-      } catch (error) {
-        console.error("Error updating refresh timestamps:", error);
-      }
-      console.log("Scheduled data refresh completed successfully");
-      return true;
-    } finally {
-      // Always release the lock when done
-      try {
-        await releaseRefreshLock();
-      } catch (error) {
-        console.error("Error releasing refresh lock:", error);
-      }
-    }
-  } catch (error) {
-    console.error("Error during scheduled Dune data refresh:", error);
-    return false;
   }
 }

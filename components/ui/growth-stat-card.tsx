@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { TrendingUp, Target, Zap } from 'lucide-react'
-import { DashcoinCard } from "@/components/ui/dashcoin-card" // Base card component
+import { DashcoinCard } from "@/components/ui/dashcoin-card" 
 
 interface GrowthStatCardProps {
   value: string
@@ -12,7 +12,6 @@ interface GrowthStatCardProps {
 }
 
 export function GrowthStatCard({ value, label = "since launch", className = "", isWinner = false }: GrowthStatCardProps) {
-  // Intersection Observer for entrance animation
   const [isVisible, setIsVisible] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
 
@@ -51,23 +50,22 @@ export function GrowthStatCard({ value, label = "since launch", className = "", 
       </div>
 
       {/* Bullet hole effects - Conditionally render if isWinner and adjust positioning */}
-      {isWinner && [...Array(3)].map((_, i) => { // Reduced to 3 bullet holes for less clutter
-        // Position bullet holes in the outer 20% of the card, avoiding direct center line
+      {isWinner && [...Array(3)].map((_, i) => { 
         let topPos, leftPos;
-        const randomEdge = Math.random(); // Determine if it's top/bottom or left/right heavy
-        const randomPrimary = Math.random() * 20; // 0-20%
-        const randomSecondary = Math.random() * 60 + 20; // 20-80% to spread along the other axis
+        const randomEdge = Math.random(); 
+        const randomPrimary = Math.random() * 20; 
+        const randomSecondary = Math.random() * 60 + 20; 
 
-        if (randomEdge < 0.25) { // Top edge
+        if (randomEdge < 0.25) {
           topPos = randomPrimary;
           leftPos = randomSecondary;
-        } else if (randomEdge < 0.5) { // Bottom edge
+        } else if (randomEdge < 0.5) {
           topPos = 100 - randomPrimary;
           leftPos = randomSecondary;
-        } else if (randomEdge < 0.75) { // Left edge
+        } else if (randomEdge < 0.75) {
           topPos = randomSecondary;
           leftPos = randomPrimary;
-        } else { // Right edge
+        } else { 
           topPos = randomSecondary;
           leftPos = 100 - randomPrimary;
         }

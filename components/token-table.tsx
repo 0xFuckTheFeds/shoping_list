@@ -9,49 +9,14 @@ import { fetchPaginatedTokens } from "@/app/actions/dune-actions"
 import type { TokenData, PaginatedTokenResponse } from "@/types/dune"
 import { CopyAddress } from "@/components/copy-address"
 import { DuneQueryLink } from "@/components/dune-query-link"
+import { batchFetchTokensData } from "@/app/actions/dexscreener-actions"
+import { useCallback } from "react"
+import { fetchTokenResearch } from "@/app/actions/googlesheet-action"
 
 interface ResearchScoreData {
   symbol: string
   score: number | null
   [key: string]: any 
-}
-
-async function fetchTokenResearch(): Promise<ResearchScoreData[]> {
-  const API_KEY = 'AIzaSyC8QxJez_UTHUJS7vFj1J3Sje0CWS9tXyk';
-  const SHEET_ID = '1Nra5QH-JFAsDaTYSyu-KocjbkZ0MATzJ4R-rUt-gLe0';
-  const SHEET_NAME = 'Dashcoin Scoring';
-  const RANGE = `${SHEET_NAME}!A1:K26`;
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
-
-  try {
-    const response = await fetch(url);
-    const data = await response.json();
-    
-    if (!data.values || data.values.length < 2) {
-      console.warn('No data found in Google Sheet');
-      return [];
-    }
-
-    const [header, ...rows] = data.values;
-    
-    const structured = rows.map((row: any) => {
-      const entry: Record<string, any> = {};
-      header.forEach((key: string, i: number) => {
-        entry[key.trim()] = row[i] || '';
-      });
-      return entry;
-    });
-
-    return structured.map((entry: any) => {
-      return {
-        symbol: (entry['Project'] || '').toString().toUpperCase(),
-        score: entry['Score'] ? parseFloat(entry['Score']) : null,
-      };
-    });
-  } catch (err) {
-    console.error('Google Sheets API error:', err);
-    return [];
-  }
 }
 
 export default function TokenTable({ data }: { data: PaginatedTokenResponse | TokenData[] }) {
@@ -69,6 +34,10 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
   const [filteredTokens, setFilteredTokens] = useState<TokenData[]>(initialData.tokens || [])
   const [researchScores, setResearchScores] = useState<ResearchScoreData[]>([])
   const [isLoadingResearch, setIsLoadingResearch] = useState(false)
+  const [isSortingLocally, setIsSortingLocally] = useState(false)
+  const [dexscreenerData, setDexscreenerData] = useState<Record<string, any>>({})
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
+  const [refreshCountdown, setRefreshCountdown] = useState(60)
 
   useEffect(() => {
     const getResearchScores = async () => {
@@ -138,8 +107,82 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
     }
   };
 
+  const fetchDexscreenerData = useCallback(async () => {
+    if (!filteredTokens.length) return;
+    
+    const tokenAddresses = filteredTokens
+      .map(token => token.token)
+      .filter(address => address && typeof address === "string");
+    
+    if (tokenAddresses.length === 0) return;
+    
+    try {
+      const dataMap = await batchFetchTokensData(tokenAddresses);
+      const newDexData: Record<string, any> = {};
+      
+      tokenAddresses.forEach(address => {
+        const data = dataMap.get(address);
+
+        if (data && data.pairs && data.pairs.length > 0) {
+          const pair = data.pairs[0];
+          newDexData[address] = {
+            volume24h: pair.volume?.h24 || 0,
+            change24h: pair.priceChange?.h24 || 0,
+            changeM5: pair.priceChange?.m5 || 0,
+          };
+        }
+      });
+      
+      setDexscreenerData(newDexData);
+      setLastRefreshed(new Date());
+      setRefreshCountdown(60);
+    } catch (error) {
+      console.error("Error fetching Dexscreener data:", error);
+    }
+  }, [filteredTokens]);
+
+  const getTokenProperty = (token: any, property: string, defaultValue: any = "N/A") => {
+    return token && token[property] !== undefined && token[property] !== null ? token[property] : defaultValue
+  }
+  
+    
+  const getResearchScore = (tokenSymbol: string): number | null => {
+    if (!tokenSymbol) return null;
+    
+    const normalizedSymbol = tokenSymbol.toUpperCase();
+    const scoreData = researchScores.find(item => item.symbol.toUpperCase() === normalizedSymbol);
+    return scoreData?.score !== undefined ? scoreData.score : null;
+  }
+
+  const tokensWithDexData = filteredTokens.map(token => {
+    const tokenAddress = getTokenProperty(token, "token", "");
+    const dexData = tokenAddress && dexscreenerData[tokenAddress] ? dexscreenerData[tokenAddress] : {};
+    
+    return {
+      ...token,
+      ...dexData
+    };
+  });
+
   useEffect(() => {
-    if (currentPage !== 1) {
+    if (refreshCountdown <= 0) {
+      fetchDexscreenerData();
+      return;
+    }
+    
+    const timer = setTimeout(() => {
+      setRefreshCountdown(prev => prev - 1);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [refreshCountdown, fetchDexscreenerData]);
+  
+  useEffect(() => {
+    fetchDexscreenerData();
+  }, [currentPage, fetchDexscreenerData]);
+
+  useEffect(() => {
+    if (searchTerm !== "" && currentPage !== 1) {
       setCurrentPage(1);
     } else {
       const timer = setTimeout(() => {
@@ -151,36 +194,104 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
   }, [searchTerm]);
 
   useEffect(() => {
-    fetchData()
-  }, [currentPage, itemsPerPage, sortField, sortDirection])
+    if (["researchScore", "name", "symbol"].includes(sortField) || isSortingLocally) {
+      sortTokensLocally();
+    } else {
+      fetchData();
+    }
+  }, [currentPage, itemsPerPage, sortField, sortDirection]);
 
   const handleSort = (field: string) => {
     if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
-      setSortField(field)
-      setSortDirection("desc")
+      setSortField(field);
+      setSortDirection("desc");
     }
-    setCurrentPage(1)
+    
+    setIsSortingLocally(["researchScore", "name", "created_time", "symbol"].includes(field));
+    setCurrentPage(1);
   }
+
+  const sortTokensLocally = () => {
+    if (!filteredTokens.length) return;
+    
+    const sortedTokens = [...filteredTokens].sort((a, b) => {
+      let valueA, valueB;
+      
+      switch(sortField) {
+        case "name":
+          valueA = (a.name || "").toString().toLowerCase();
+          valueB = (b.name || "").toString().toLowerCase();
+          return sortDirection === "asc" 
+            ? valueA.localeCompare(valueB)
+            : valueB.localeCompare(valueA);
+            
+        case "symbol":
+          valueA = (a.symbol || "").toString().toLowerCase();
+          valueB = (b.symbol || "").toString().toLowerCase();
+          return sortDirection === "asc" 
+            ? valueA.localeCompare(valueB)
+            : valueB.localeCompare(valueA);
+            
+        case "created_time":
+          valueA = a.created_time ? new Date(a.created_time).getTime() : 0;
+          valueB = b.created_time ? new Date(b.created_time).getTime() : 0;
+          return sortDirection === "asc" 
+            ? valueA - valueB
+            : valueB - valueA;
+            
+        case "researchScore":
+          const scoreA = getResearchScore(a.symbol || '');
+          const scoreB = getResearchScore(b.symbol || '');
+          
+          if (scoreA === null && scoreB === null) return 0;
+          if (scoreA === null) return sortDirection === "asc" ? -1 : 1;
+          if (scoreB === null) return sortDirection === "asc" ? 1 : -1;
+          
+          return sortDirection === "asc" 
+            ? scoreA - scoreB 
+            : scoreB - scoreA;
+
+        case "volume24h":
+          valueA = a.volume24h || 0;
+          valueB = b.volume24h || 0;
+          return sortDirection === "asc" 
+            ? valueA - valueB
+            : valueB - valueA;
+            
+        case "change24h":
+          valueA = a.change24h || 0;
+          valueB = b.change24h || 0;
+          return sortDirection === "asc" 
+            ? valueA - valueB
+            : valueB - valueA;
+            
+        case "changeM5":
+          valueA = a.changeM5 || 0;
+          valueB = b.changeM5 || 0;
+          return sortDirection === "asc" 
+            ? valueA - valueB
+            : valueB - valueA;
+            
+        default:
+          return 0;
+      }
+    });
+    
+    setFilteredTokens(sortedTokens);
+  };
 
   const renderSortIndicator = (field: string) => {
     if (sortField !== field) return null
     return sortDirection === "asc" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
   }
 
-  const getTokenProperty = (token: any, property: string, defaultValue: any = "N/A") => {
-    return token && token[property] !== undefined && token[property] !== null ? token[property] : defaultValue
+  const handlePageChange = (newPage: number) => {
+    if (newPage !== currentPage) {
+      setCurrentPage(newPage);
+    }
   }
-
-  const getResearchScore = (tokenSymbol: string): number | null => {
-    if (!tokenSymbol) return null;
-    
-    const normalizedSymbol = tokenSymbol.toUpperCase();
-    const scoreData = researchScores.find(item => item.symbol.toUpperCase() === normalizedSymbol);
-    return scoreData?.score || null;
-  }
-
 
   return (
     <div className="space-y-4">
@@ -205,6 +316,12 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
             <option value="marketCap">Market Cap</option>
             <option value="num_holders">Holders</option>
             <option value="created_time">Created Date</option>
+            <option value="name">Name</option>
+            <option value="symbol">Token</option>
+            <option value="researchScore">Research Score</option>
+            <option value="volume24h">24h Volume</option>
+            <option value="change24h">24h %Gain</option>
+            <option value="changeM5">5m %Gain</option>
           </select>
           <select
             value={sortDirection}
@@ -259,23 +376,37 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
                 >
                   <div className="flex items-center gap-1">Created {renderSortIndicator("created_time")}</div>
                 </th>
-                <th className="text-left py-3 px-4 text-dashYellow">
-                  <div className="flex items-center gap-1">Research Score</div>
+                <th 
+                  className="text-left py-3 px-4 text-dashYellow cursor-pointer"
+                  onClick={() => handleSort("researchScore")}
+                >
+                  <div className="flex items-center gap-1">
+                    Research Score {renderSortIndicator("researchScore")}
+                  </div>
+                </th>
+                <th className="text-left py-3 px-4 text-dashYellow cursor-pointer" onClick={() => handleSort("volume24h")}>
+                  <div className="flex items-center gap-1">24h Volume {renderSortIndicator("volume24h")}</div>
+                </th>
+                <th className="text-left py-3 px-4 text-dashYellow cursor-pointer" onClick={() => handleSort("change24h")}>
+                  <div className="flex items-center gap-1">24h %Gain {renderSortIndicator("change24h")}</div>
+                </th>
+                <th className="text-left py-3 px-4 text-dashYellow cursor-pointer" onClick={() => handleSort("changeM5")}>
+                  <div className="flex items-center gap-1">5m %Gain {renderSortIndicator("changeM5")}</div>
                 </th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center">
+                  <td colSpan={10} className="py-8 text-center">
                     <div className="flex items-center justify-center gap-2">
                       <Loader2 className="h-5 w-5 animate-spin text-dashYellow" />
                       <span>Loading tokens...</span>
                     </div>
                   </td>
                 </tr>
-              ) : filteredTokens.length > 0 ? (
-                filteredTokens.map((token: any , index: number) => {
+              ) : tokensWithDexData.length > 0 ? (
+                tokensWithDexData.map((token: any , index: number) => {
                   const tokenAddress = getTokenProperty(token, "token", "")
                   const tokenSymbol = getTokenProperty(token, "symbol", "???")
                   const researchScore = getResearchScore(tokenSymbol)
@@ -286,7 +417,7 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
                       className="border-b border-dashGreen-light hover:bg-dashGreen-card dark:hover:bg-dashGreen-cardDark"
                     >
                       <td className="py-3 px-4">
-                        <Link href={`/token/${tokenSymbol}`} className="hover:text-dashYellow">
+                        <Link href={`/tokendetail/${tokenSymbol}`} className="hover:text-dashYellow">
                           <div>
                             <p className="font-bold">{tokenSymbol}</p>
                             {tokenAddress && (
@@ -323,23 +454,34 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
                             <Loader2 className="h-4 w-4 animate-spin text-dashYellow mr-2" />
                             <span>Loading...</span>
                           </div>
-                        ) : researchScore !== null ? (
+                        ) : researchScore !== null && researchScore !== undefined ? (
                           <div className="flex items-center">
                             <span className="font-medium mr-2">{researchScore.toFixed(1)}</span>
-                            <Link href={`/research/${tokenSymbol}`} className="hover:text-dashYellow">
+                            <Link href={`/tokendetail/${tokenSymbol}`} className="hover:text-dashYellow">
                               <FileSearch className="h-4 w-4" />
                             </Link>
                           </div>
                         ) : (
-                          <span className="text-dashYellow-light opacity-50"></span>
+                          <span className="text-dashYellow-light opacity-50">-</span>
                         )}
+                      </td>
+                      <td className="py-3 px-4">{formatCurrency(getTokenProperty(token, "volume24h", 0))}</td>
+                      <td className="py-3 px-4">
+                        <div className={`${token.change24h > 0 ? 'text-green-500' : token.change24h < 0 ? 'text-red-500' : ''}`}>
+                          {getTokenProperty(token, "change24h", 0).toFixed(2)}%
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className={`${token.changeM5 > 0 ? 'text-green-500' : token.changeM5 < 0 ? 'text-red-500' : ''}`}>
+                          {getTokenProperty(token, "changeM5", 0).toFixed(2)}%
+                        </div>
                       </td>
                     </tr>
                   )
                 })
               ) : (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center opacity-80">
+                  <td colSpan={10} className="py-8 text-center opacity-80">
                     {searchTerm
                       ? "No tokens found matching your search."
                       : "No token data available. Check your Dune query or API key."}
@@ -352,11 +494,15 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
       </DashcoinCard>
 
       {/* Dune Query Link */}
-      <div className="flex justify-end mt-2">
+      <div className="flex justify-between mt-2">
+        <div className="text-xs opacity-70 mt-1">
+          Last updated: {lastRefreshed ? lastRefreshed.toLocaleTimeString() : 'Never'} 
+          {lastRefreshed && <span> (refreshing in {refreshCountdown}s)</span>}
+        </div>
         <DuneQueryLink queryId={5140151} />
       </div>
 
-      {/* Pagination */}
+      {/* Pagination - Fixed using handlePageChange */}
       {tokenData.totalPages > 1 && (
         <div className="flex flex-col sm:flex-row justify-between items-center mt-4 gap-4">
           <div className="text-sm opacity-80">
@@ -364,14 +510,14 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
           </div>
           <div className="flex flex-wrap gap-2 justify-center">
             <button
-              onClick={() => setCurrentPage(1)}
+              onClick={() => handlePageChange(1)}
               disabled={currentPage === 1 || isLoading}
               className="px-3 py-1 bg-dashGreen-dark border border-dashBlack rounded-md text-dashYellow-light disabled:opacity-50"
             >
               First
             </button>
             <button
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1 || isLoading}
               className="px-3 py-1 bg-dashGreen-dark border border-dashBlack rounded-md text-dashYellow-light disabled:opacity-50"
             >
@@ -388,7 +534,7 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
                 ) : (
                   <button
                     key={pageNum}
-                    onClick={() => setCurrentPage(pageNum)}
+                    onClick={() => handlePageChange(pageNum)}
                     disabled={isLoading}
                     className={`w-8 h-8 rounded-md ${
                       currentPage === pageNum
@@ -403,14 +549,14 @@ export default function TokenTable({ data }: { data: PaginatedTokenResponse | To
             </div>
 
             <button
-              onClick={() => setCurrentPage(Math.min(tokenData.totalPages, currentPage + 1))}
+              onClick={() => handlePageChange(Math.min(tokenData.totalPages, currentPage + 1))}
               disabled={currentPage === tokenData.totalPages || isLoading}
               className="px-3 py-1 bg-dashGreen-dark border border-dashBlack rounded-md text-dashYellow-light disabled:opacity-50"
             >
               Next
             </button>
             <button
-              onClick={() => setCurrentPage(tokenData.totalPages)}
+              onClick={() => handlePageChange(tokenData.totalPages)}
               disabled={currentPage === tokenData.totalPages || isLoading}
               className="px-3 py-1 bg-dashGreen-dark border border-dashBlack rounded-md text-dashYellow-light disabled:opacity-50"
             >

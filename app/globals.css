@@ -125,6 +125,12 @@
   letter-spacing: 1px;
 }
 
+.dashcoin-title-hq {
+  font-family: "Bangers", system-ui, sans-serif;
+  text-shadow: 3px 3px 0 #222222;
+  letter-spacing: 5px;
+}
+
 .dashcoin-text {
   font-family: "Bangers", system-ui, sans-serif;
   text-shadow: 2px 2px 0 #222222;

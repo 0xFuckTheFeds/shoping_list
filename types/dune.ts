@@ -23,24 +23,20 @@ export interface DuneQueryResult {
   }
 }
 
-// Volume by token data structure based on query 5119173
 export interface VolumeByTokenData {
-  token: string // Contract address
-  symbol: string // Token symbol
-  vol_usd: number // Volume in USD
-  txs: number // Number of transactions
-  created_time: string // Creation timestamp
+  token: string 
+  symbol: string 
+  vol_usd: number 
+  txs: number 
+  created_time: string 
 }
 
-// Token data structure based on your volume by token query
 export interface TokenData {
-  token: string // Contract address
-  symbol: string // Token symbol
-  vol_usd: number // Volume in USD
-  txs: number // Number of transactions
-  created_time: string // Creation timestamp
-
-  // Additional fields we'll calculate or add
+  token: string 
+  symbol: string 
+  vol_usd: number 
+  txs: number 
+  created_time: string 
   price?: number
   marketCap?: number
   change24h?: number
@@ -53,9 +49,9 @@ export interface TokenData {
   volume24h?: number
   name?: string
   num_holders?: number
+  changeM5?: number
 }
 
-// Paginated token response
 export interface PaginatedTokenResponse {
   tokens: TokenData[]
   page: number
@@ -64,7 +60,6 @@ export interface PaginatedTokenResponse {
   totalPages: number
 }
 
-// Market stats structure
 export interface MarketStats {
   totalMarketCap: number
   volume24h: number
@@ -74,7 +69,6 @@ export interface MarketStats {
   coinLaunches: number
 }
 
-// Market cap over time data structure
 export interface MarketCapTimeData {
   date: string
   marketcap: number
@@ -84,7 +78,6 @@ export interface MarketCapTimeData {
   nh_diff_30d: number
 }
 
-// Token market cap data for pie chart
 export interface TokenMarketCapData {
   date: string
   token_mint_address: string
@@ -95,13 +88,11 @@ export interface TokenMarketCapData {
   rn: number
 }
 
-// Total market cap data
 export interface TotalMarketCapData {
   latest_data_at: string
   total_marketcap_usd: number
 }
 
-// New token data
 export interface NewTokenData {
   token_mint_address: string
   created_time: string

@@ -17,22 +17,17 @@ export default function EnvSetup() {
   const [apiKey, setApiKey] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
 
-    // In a real app, you would save this to your environment variables
-    // This is just a mock implementation
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
     setIsSubmitting(false)
     setIsSuccess(true)
-
-    // Reload the page after 2 seconds to simulate the environment variable being set
     setTimeout(() => {
       window.location.reload()
-    }, 2000)
+    }, 3000)
   }
 
   return (

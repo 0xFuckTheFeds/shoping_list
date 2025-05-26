@@ -26,7 +26,6 @@ export default function TokenPage({ params }: { params: { symbol: string } }) {
   const [dexNextRefresh, setDexNextRefresh] = useState<Date | null>(null)
   const [dexTimeRemaining, setDexTimeRemaining] = useState<number>(0)
 
-  // Calculate formatted times and remaining time
   const formattedDuneLastRefresh = duneLastRefresh
     ? duneLastRefresh.toLocaleString(undefined, {
         dateStyle: "short",
@@ -55,23 +54,18 @@ export default function TokenPage({ params }: { params: { symbol: string } }) {
   useEffect(() => {
     async function loadData() {
       try {
-        // Fetch token data from Dune
-
         const duneTokenData = await fetchTokenDetails(symbol)
-
         if (!duneTokenData) {
           notFound()
         }
 
         setTokenData(duneTokenData)
 
-        // Get cache information for both data sources
         const duneCache = await getTimeUntilNextDuneRefresh()
         const dexCache = duneTokenData?.token
           ? await getTimeUntilNextDexscreenerRefresh(`token:${duneTokenData.token}`)
           : { timeRemaining: 0, lastRefreshTime: null }
 
-        // Store cache information in state
         setDuneLastRefresh(duneCache.lastRefreshTime)
         setDuneNextRefresh(new Date(duneCache.lastRefreshTime.getTime() + 1 * 60 * 60 * 1000))
         setDuneTimeRemaining(duneCache.timeRemaining)
@@ -82,7 +76,6 @@ export default function TokenPage({ params }: { params: { symbol: string } }) {
           setDexTimeRemaining(dexCache.timeRemaining)
         }
 
-        // Fetch Dexscreener data
         if (duneTokenData && duneTokenData.token) {
           const dexData = await fetchDexscreenerTokenData(duneTokenData.token)
           if (dexData && dexData.pairs && dexData.pairs.length > 0) {
@@ -111,36 +104,19 @@ export default function TokenPage({ params }: { params: { symbol: string } }) {
     notFound()
   }
 
-  // Use the pair address if available, otherwise use the token address
   const chartAddress = dexscreenerData?.pairAddress || (tokenData && tokenData.token) || ""
-
-  // Get price from Dexscreener if available
   const price = dexscreenerData?.priceUsd
     ? Number.parseFloat(dexscreenerData.priceUsd)
     : (tokenData && tokenData.price) || 0
-
-  // Get 24h change from Dexscreener if available
   const change24h = dexscreenerData?.priceChange?.h24 || (tokenData && tokenData.change24h) || 0
-
-  // Get volume from Dexscreener if available
   const volume24h = dexscreenerData?.volume?.h24 || (tokenData && tokenData.volume24h) || 0
-
-  // Get liquidity from Dexscreener if available
   const liquidity = dexscreenerData?.liquidity?.usd || (tokenData && tokenData.liquidity) || 0
-
-  // Get transactions from Dexscreener if available
   const txs = dexscreenerData
     ? (dexscreenerData.txns?.h24?.buys || 0) + (dexscreenerData.txns?.h24?.sells || 0)
     : (tokenData && tokenData.txs) || 0
-
-  // Get buys and sells from Dexscreener if available
   const buys = dexscreenerData?.txns?.h24?.buys || 0
   const sells = dexscreenerData?.txns?.h24?.sells || 0
-
-  // Get 1h change from Dexscreener if available
   const change1h = dexscreenerData?.priceChange?.h1 || (tokenData && tokenData.change1h) || 0
-
-  // Safely get token properties
   const tokenSymbol = tokenData?.symbol || "Unknown"
   const tokenName = tokenData?.name || tokenData?.description || "Unknown Token"
   const tokenAddress = tokenData?.token || ""

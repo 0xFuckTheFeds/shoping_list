@@ -1,4 +1,3 @@
-// app/api/tokens/route.ts
 import { NextResponse } from 'next/server';
 import { fetchAllTokensFromDune } from '@/app/actions/dune-actions';
 

@@ -12,20 +12,15 @@ interface DexscreenerChartProps {
 export function DexscreenerChart({ tokenAddress = "", title = "Price Chart", onDataLoaded }: DexscreenerChartProps) {
   const [isClient, setIsClient] = useState(false)
 
-  // Ensure tokenAddress is a string and not empty
   const safeTokenAddress = typeof tokenAddress === "string" ? tokenAddress : String(tokenAddress || "")
 
   useEffect(() => {
     setIsClient(true)
 
-    // Set up a message listener to capture data from the iframe
     const handleMessage = (event: MessageEvent) => {
-      // Only process messages from Dexscreener
       if (event.origin && event.origin.includes("dexscreener.com")) {
         try {
-          // Check if the message contains pair data
           if (event.data && event.data.pair) {
-            // Pass the data to the parent component if callback provided
             if (onDataLoaded) {
               onDataLoaded(event.data.pair)
             }
@@ -36,10 +31,8 @@ export function DexscreenerChart({ tokenAddress = "", title = "Price Chart", onD
       }
     }
 
-    // Add the event listener
     window.addEventListener("message", handleMessage)
 
-    // Clean up
     return () => {
       window.removeEventListener("message", handleMessage)
     }
@@ -52,8 +45,6 @@ export function DexscreenerChart({ tokenAddress = "", title = "Price Chart", onD
       </DashcoinCard>
     )
   }
-
-  // Avoid hydration mismatch
 
   if (!isClient) {
     return (
